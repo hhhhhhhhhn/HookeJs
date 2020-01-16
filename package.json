@@ -1,0 +1,20 @@
+{
+  "name": "hookejs",
+  "version": "1.0.0",
+  "description": "A node port of Hooke",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oekshido/HookeJs.git"
+  },
+  "author": "oekshido",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/oekshido/HookeJs/issues"
+  },
+  "homepage": "https://github.com/oekshido/HookeJs#readme",
+  "dependencies": {}
+}
