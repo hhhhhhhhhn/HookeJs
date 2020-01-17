@@ -9,7 +9,7 @@ function findSpaces(text) {
      * Out: [-1, 6, 9, 14, 17]
      */
     text = text.replace("\n", " ").replace("\t", " ").replace("\r", " ")
-    spaceIndices = [];
+    var spaceIndices = [];
     var len = text.length;
     for (var i = 0; i < len; i++){
         if(text.charAt(i) == " "){
@@ -30,8 +30,8 @@ function getWords(text, spaceIndices) {
      * Out: [   [ 'Hello,', 'my', 'name', 'is' ] ,
      * [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ]]   ]
      */
-    words = [];
-    indicesList = [];
+    var words = [];
+    var indicesList = [];
     var len = spaceIndices.length - 1; //One is substracted because the for loop uses two elements
     for (var i = 0; i < len; i++) {
         if (spaceIndices[i + 1] - spaceIndices[i] > 1) {    //Doesn't count two spaces in a row
@@ -51,13 +51,13 @@ function normalizeAndremoveStopWords(words, indicesList, language = "english"){
      * Out: [ [ 'jazz' ], [ [ 20, 25 ] ] ]
      * (only jazz is not a stopword)
      */
-    json = require('./stopwords.json');
-    stopwords = json[language];
-    regex = RegExp(json[language+"regex"][0], json[language+"regex"][1]); //All not allowed characters
-    newWords = [];
-    newIndicesList = [];
-    len = words.length;
-    for (i = 0; i < len; i++){
+    var json = require('./stopwords.json');
+    var stopwords = json[language];
+    var regex = RegExp(json[language+"regex"][0], json[language+"regex"][1]); //All not allowed characters
+    var newWords = [];
+    var newIndicesList = [];
+    var len = words.length;
+    for (var i = 0; i < len; i++){
         words[i] = words[i].toLowerCase().replace(regex, "");
         if (!stopwords.includes(words[i])){
             newWords.push(words[i]);
@@ -79,13 +79,78 @@ function shingleAndStemmer(words, indicesList, shingleSize = 1, language = "engl
      * Out: [ [  [ 'like', 'jazz' ],[ 'jazz', 'my' ],[ 'my', 'jazzi' ],[ 'jazzi', 'feel' ] ],
      * [ [ 1, 4 ], [ 3, 6 ], [ 5, 8 ], [ 7, 10 ] ]]
      */
-    words = snowball.stemword(words, language);
-    shingles = [];
-    shingledIndicesList = [];
-    len = words.length - shingleSize + 1;
+    var words = snowball.stemword(words, language);
+    var shingles = [];
+    var shingledIndicesList = [];
+    var len = words.length - shingleSize + 1;
     for(var i = 0; i < len; i++){
         shingles.push(words.slice(i, i+shingleSize));
         shingledIndicesList.push([ indicesList[i][0] , indicesList[i + shingleSize - 1][1] ])
     };
     return [shingles, shingledIndicesList]
+};
+
+function extendExcludingUnion(array1, array2){
+    /**
+     * Auxiliary function which unites two arrays, skipping duplicates
+     * In: [1,2,4,5,7] , [3,4,5,6,7,8]
+     * Out: [1,2,4,5,7,3,6,8]
+     */
+    var len = array2.length
+    for(var i = 0; i < len; i++){
+        if(!array1.includes(array2[i])){
+            array1.push(array2[i])
+        };
+    };
+    return array1
+};
+
+function findUnionAndCluster(shingles1, shingles2, maximumGap, minimumClusterSize){
+    /**
+     * Finds the points matching in both shingle sets, then finds the clusters in which they are close togather (a match)
+     */
+    var matches = [];
+    var len1 = shingles1.length;
+    var len2 = shingles2.length;
+    for(var i = 0; i < len1; i++){
+        for(var j = 0; j < len2; j++){
+            if(shingles1[i] == shingles2[j]){
+                matches.push([i,j])
+            };
+        };
+    };
+    //clustering
+    var clusters = [];
+    var len = matches.length;
+    for(var i = 0; i < len; i++){    // For every matching point
+        var inCluster = null;           // By default it is not in any cluster (It is null instead of false because false = 0 and 0 is a possible index)
+        var clustersLen = clusters.length;
+        for(var j = 0; j < clustersLen; j++){ // For each existing cluster
+            var currentClusterLen = clusters[j].length;
+            for(var k = 0; k < currentClusterLen; k++){ // For each point in that cluster
+                if (Math.max( Math.abs(matches[i][0] - clusters[j][k][0]), Math.abs(matches[i][1] - clusters[j][k][1]) ) <= maximumGap){
+                // if Chebyshev distance is small enough to be in the same cluster https://en.wikipedia.org/wiki/Chebyshev_distance
+                    if (inCluster == null){          // if it isn't in any cluster
+                        clusters[j].push(matches[i]);      // Add it to the cluster
+                        inCluster = j                      // Mark that it is in that cluster
+                    } else if (inCluster != j){        // if it already is in a cluster and that cluster isn't the on it's in
+                        clusters[inCluster] = extendExcludingUnion(clusters[inCluster], clusters[j]) // Make the cluster its in the union between both
+                        clusters[j] = []                //Empty the other one (This with the last line merges both clusters)
+                    };
+                };
+            };
+        };
+        if (inCluster == null){      // If after checking in al clusters it isn't in one
+            clusters.push([matches[i]]) // Create a cluster with just itself
+        }
+    };
+    //Removing all clusters smaller than the minimum distance
+    var newClusters = [];
+    var len = clusters.length;
+    for (var i = 0; i < len; i++){
+        if (clusters[i].length >= minimumClusterSize){
+            newClusters.push(clusters[i])
+        };
+    };
+    return newClusters
 };
