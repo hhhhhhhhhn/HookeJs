@@ -1,3 +1,5 @@
+//// Comparison section
+
 var snowball = require('node-snowball');
 
 function findSpaces(text) {
@@ -105,20 +107,57 @@ function extendExcludingUnion(array1, array2){
     return array1
 };
 
-function findUnionAndCluster(shingles1, shingles2, maximumGap, minimumClusterSize){
+function arraysEqual(array1, array2){
+    /**
+     * Auxiliary function which checks if the elements of both arrays are equal. If they are not arrays just checks if they are equal
+     * 
+     * In: [1,2,3,4], [2,4,3,1]
+     * Out: false
+     * 
+     * In: [1,2,3,4], [1,2,3,4]
+     * Out: true
+     * 
+     * In: [[1]], [[1]]
+     * Out: false // because they are different entities and this function isn't recursive
+     * 
+     * In: 4,
+     */
+    if(array1 == array2){
+        return true
+    }
+    if(array1.length != array2.length){
+        return false
+    };
+    var len = array1.length;
+    for(var i = 0; i < len; i++){
+        if(array1[i] != array2[i]){
+            return false
+        };
+    };
+    return true;
+};
+
+function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumClusterSize = 1, returnMatches = false){
     /**
      * Finds the points matching in both shingle sets, then finds the clusters in which they are close togather (a match)
+     * 
+     * In: [["a"],["b"],["c"],["d"]], [["x"],["c"],["d"],["y"]], 2, 1
+     * Out: [ [ [ 2, 1 ], [ 3, 2 ] ] ]    //Meaning there was one cluster, consisting of the indices 2 and 3 ("b" and "c") of the first array, and
+     *                                    //indices 1 and 2 of the second array (also "b" and "c")
+     * 
+     * The returnMatches argument return the matches without any cluster done to them
      */
     var matches = [];
     var len1 = shingles1.length;
     var len2 = shingles2.length;
     for(var i = 0; i < len1; i++){
         for(var j = 0; j < len2; j++){
-            if(shingles1[i] == shingles2[j]){
+            if(arraysEqual(shingles1[i], shingles2[j])){
                 matches.push([i,j])
             };
         };
     };
+    matches = [[0,0],[2,2],[1,1]];
     //clustering
     var clusters = [];
     var len = matches.length;
@@ -152,5 +191,76 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap, minimumClusterSiz
             newClusters.push(clusters[i])
         };
     };
+    if(returnMatches){
+        return [newClusters, matches]
+    }
     return newClusters
 };
+
+function findClusterStartAndEnd(cluster){
+    /**
+     * Gets the beggining and end of both sources of a cluster in format [[startSource1, endSource1],[startSource2, endSource2]]
+     * In: [[3,5],[4,5],[2,7]]
+     * Out: [ [ 2, 4 ], [ 5, 7 ] ]
+     */
+    var len = cluster.length;
+    var startSource1, endSource1, startSource2, endSource2;
+    startSource1 = endSource1 = cluster[0][0];
+    startSource2 = endSource2 = cluster[0][1];
+    for(var i = 1; i < len; i++){
+        if(cluster[i][0] < startSource1){
+            startSource1 = cluster[i][0]
+        }else if(cluster[i][0] > endSource1){
+            endSource1 = cluster[i][0]
+        };
+        if(cluster[i][1] < startSource2){
+            startSource2 = cluster[i][1]
+        }else if(cluster[i][1] > endSource2){
+            endSource2 = cluster[i][1]
+        };
+    };
+    return [[startSource1, endSource1],[startSource2, endSource2]]
+}
+
+function findClusterStartAndEndRelativeToOriginalText(start, end, shingledIndicesList){
+    /**
+     * Returns the indices of mathes based on the original text.
+     * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
+     * Out: [1, 9]
+     */
+    return [shingledIndicesList[start][0], shingledIndicesList[end][1]]
+}
+
+//// Search section
+const {google} = require('googleapis');
+const customsearch = google.customsearch('v1');
+
+async function search(words, apikey=process.argv[2], engineid=process.argv[3]){
+    var limit = 32; //32 word limit on google search
+    var searchQueries = [];
+    var len = Math.ceil(words.length/limit);
+    for(var i = 0; i < len; i++){
+        searchQueries.push( words.slice(i*limit, (i+1)*limit).join(" ") )
+    };
+    var links = [];
+    var searches = []
+    len = searchQueries.length;
+    for(var i = 0; i < len; i++){
+        searches.push(customsearch.cse.list({
+            cx: engineid,
+            q: searchQueries[i],
+            auth: apikey,
+        }));
+    };
+    results = await Promise.all(searches)
+    for(var i = 0; i < len; i++){
+        len = results[i].data["items"].length;
+        for(var j = 0; j < len; j++){
+            links.push(results[i].data["items"][j]["link"])
+        };
+    }
+    return links
+}
+
+text = 'Go ahead and try this. Create an empty folder named env-playground. Then create a file named server.jsand add the code above to it. Now when you execute node server.js you should see a message that says “Your port is undefined”.'.split(" ")
+a = search(text).then(console.log)
