@@ -92,7 +92,7 @@ function shingleAndStemmer(words, indicesList, shingleSize = 1, language = "engl
     return [shingles, shingledIndicesList]
 };
 
-function extendExcludingUnion(array1, array2){
+function union(array1, array2){
     /**
      * Auxiliary function which unites two arrays, skipping duplicates
      * In: [1,2,4,5,7] , [3,4,5,6,7,8]
@@ -173,7 +173,7 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumCluste
                         clusters[j].push(matches[i]);      // Add it to the cluster
                         inCluster = j                      // Mark that it is in that cluster
                     } else if (inCluster != j){        // if it already is in a cluster and that cluster isn't the on it's in
-                        clusters[inCluster] = extendExcludingUnion(clusters[inCluster], clusters[j]) // Make the cluster its in the union between both
+                        clusters[inCluster] = union(clusters[inCluster], clusters[j]) // Make the cluster its in the union between both
                         clusters[j] = []                //Empty the other one (This with the last line merges both clusters)
                     };
                 };
@@ -234,33 +234,70 @@ function findClusterStartAndEndRelativeToOriginalText(start, end, shingledIndice
 //// Search section
 const {google} = require('googleapis');
 const customsearch = google.customsearch('v1');
+const axios = require("axios");
+const textVersion = require("textversionjs");
+
 
 async function search(words, apikey=process.argv[2], engineid=process.argv[3]){
-    var limit = 32; //32 word limit on google search
+    /**
+     * Splits input words into 32 word chunks and searches the with the google search api.
+     * 
+     * In: "Do I understand it correctly that anotherCall() will be called only when someCall() is completed? What is the most elegant way of calling them in parallel?".split(" ")
+     * Out: [ ['https://stackoverflow.com/q/46466306', ... ], ['javascript - Call async/await functions in parallel - Stack Overflow', ... ]  ]
+     */
+    const limit = 32; //32 word limit on google search
     var searchQueries = [];
     var len = Math.ceil(words.length/limit);
     for(var i = 0; i < len; i++){
         searchQueries.push( words.slice(i*limit, (i+1)*limit).join(" ") )
     };
-    var links = [];
-    var searches = []
-    len = searchQueries.length;
-    for(var i = 0; i < len; i++){
-        searches.push(customsearch.cse.list({
-            cx: engineid,
-            q: searchQueries[i],
-            auth: apikey,
-        }));
+    var searches = [];
+    for(var i = 0; i < searchQueries.length; i++){
+        searches.push(customsearch.cse.list({cx: engineid, q: searchQueries[i], auth: apikey}))
     };
-    results = await Promise.all(searches)
-    for(var i = 0; i < len; i++){
-        len = results[i].data["items"].length;
-        for(var j = 0; j < len; j++){
-            links.push(results[i].data["items"][j]["link"])
+    results = await Promise.all(searches);
+    var urls = [];
+    var titles = [];
+    for(var i = 0; i < results.length; i++){
+        for (var j = 0; j < results[i].data.items.length; j++){
+            if(!urls.includes(results[i].data.items[j].link)){
+                urls.push(results[i].data.items[j].link)
+                titles.push(results[i].data.items[j].title)
+            };
         };
-    }
-    return links
+    };
+    return [urls, titles]
 }
 
-text = 'Go ahead and try this. Create an empty folder named env-playground. Then create a file named server.jsand add the code above to it. Now when you execute node server.js you should see a message that says “Your port is undefined”.'.split(" ")
-a = search(text).then(console.log)
+async function downloadWebsites(urls, justText = true){
+    var requests = [];
+    for(var i = 0; i < urls.length; i++){
+        requests.push(axios.get(urls[i]).catch(function(){}))
+    };
+    var responses = await Promise.all(requests);
+    var htmls = [];
+
+    for(var i = 0; i < responses.length; i++){
+        if(responses[i] != undefined){
+            htmls.push(responses[i].data)
+        }else{
+            htmls.push("")
+        };
+    };
+    if(!justText){
+        return htmls
+    };
+
+    const styleConfig = {
+        linkProcess : function (link, text){return text},
+        imgProcess : function (){return ""},
+    }
+
+    var texts = []
+    for(var i = 0; i < htmls.length; i++){
+        texts.push(textVersion(htmls[i], styleConfig))
+    };
+    console.log(texts)
+    return texts
+}
+

@@ -17,7 +17,9 @@
   },
   "homepage": "https://github.com/oekshido/HookeJs#readme",
   "dependencies": {
+    "axios": "^0.19.1",
     "googleapis": "^47.0.0",
-    "node-snowball": "^0.4.0"
+    "node-snowball": "^0.4.0",
+    "textversionjs": "^1.1.3"
   }
 }
