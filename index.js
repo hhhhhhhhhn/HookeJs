@@ -8,9 +8,10 @@ function findSpaces(text) {
      * and adds spaces at the beggining and start so it can be separated more easily in the getWords function
      * 
      * In: "Hello, my name is"
+     * 
      * Out: [-1, 6, 9, 14, 17]
      */
-    text = text.replace("\n", " ").replace("\t", " ").replace("\r", " ")
+    text = text.replace("\n", " ").replace("\t", " ").replace("\r", " ").replace(".", " ")
     var spaceIndices = [];
     var len = text.length;
     for (var i = 0; i < len; i++){
@@ -29,6 +30,7 @@ function getWords(text, spaceIndices) {
      * outputs list of words and list of their indices in the original string in formant [start, end]
      * 
      * In: "Hello, my name is", [-1, 6, 9, 14, 17]
+     * 
      * Out: [   [ 'Hello,', 'my', 'name', 'is' ] ,
      * [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ]]   ]
      */
@@ -50,6 +52,7 @@ function normalizeAndremoveStopWords(words, indicesList, language = "english"){
      * Leaves only allowed characters on each word and lowers it, and then removes the stopwords (from stopwords.json)
      * 
      * In: [ 'Hello,', 'my', 'name', 'is', 'jazz' ] ,  [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ], [20,25]]
+     * 
      * Out: [ [ 'jazz' ], [ [ 20, 25 ] ] ]
      * (only jazz is not a stopword)
      */
@@ -78,6 +81,7 @@ function shingleAndStemmer(words, indicesList, shingleSize = 1, language = "engl
      * https://en.wikipedia.org/wiki/W-shingling
      * 
      * In: ["like", "jazz", "my", "jazzy", "feeling"] , [[1,2], [3,4], [5,6], [7,8], [9,10]] , 2 , "english"
+     * 
      * Out: [ [  [ 'like', 'jazz' ],[ 'jazz', 'my' ],[ 'my', 'jazzi' ],[ 'jazzi', 'feel' ] ],
      * [ [ 1, 4 ], [ 3, 6 ], [ 5, 8 ], [ 7, 10 ] ]]
      */
@@ -220,7 +224,7 @@ function findClusterStartAndEnd(cluster){
         };
     };
     return [[startSource1, endSource1],[startSource2, endSource2]]
-}
+};
 
 function findClusterStartAndEndRelativeToOriginalText(start, end, shingledIndicesList){
     /**
@@ -229,14 +233,36 @@ function findClusterStartAndEndRelativeToOriginalText(start, end, shingledIndice
      * Out: [1, 9]
      */
     return [shingledIndicesList[start][0], shingledIndicesList[end][1]]
-}
+};
 
 //// Search section
 const {google} = require('googleapis');
 const customsearch = google.customsearch('v1');
 const axios = require("axios");
-const textVersion = require("textversionjs");
 
+function html2text(htmlCode){
+    /**
+     * Auxiliary function to convert html to plain text
+     * 
+     * Modified from EpokK @ https://stackoverflow.com/questions/15180173/convert-html-to-plain-text-in-js-without-browser-environment/15180206
+     * 
+     * In: "<html><head><title>Example Domain</title>..."
+     * 
+     * Out: 
+     *Example Domain
+     *
+     *Example Domain
+     *This domain is for use in illustrative examples in documents. You may use this
+     *domain in literature without prior coordination or asking for permission.
+     *
+     *More information...
+     */
+    htmlCode = String(htmlCode)
+    htmlCode = htmlCode.replace(/<style([\s\S]*?)<\/style>/gi, '');
+    htmlCode = htmlCode.replace(/<script([\s\S]*?)<\/script>/gi, '');
+    htmlCode = htmlCode.replace(/<[^>]+>/ig, ' ');
+    return htmlCode
+}
 
 async function search(words, apikey=process.argv[2], engineid=process.argv[3]){
     /**
@@ -253,16 +279,18 @@ async function search(words, apikey=process.argv[2], engineid=process.argv[3]){
     };
     var searches = [];
     for(var i = 0; i < searchQueries.length; i++){
-        searches.push(customsearch.cse.list({cx: engineid, q: searchQueries[i], auth: apikey}))
+        searches.push(customsearch.cse.list({cx: engineid, q: searchQueries[i], auth: apikey}).catch(function(){}))
     };
     results = await Promise.all(searches);
     var urls = [];
     var titles = [];
     for(var i = 0; i < results.length; i++){
-        for (var j = 0; j < results[i].data.items.length; j++){
-            if(!urls.includes(results[i].data.items[j].link)){
-                urls.push(results[i].data.items[j].link)
-                titles.push(results[i].data.items[j].title)
+        if(results[i].data.items != undefined){
+            for (var j = 0; j < results[i].data.items.length; j++){
+                if(!urls.includes(results[i].data.items[j].link)){
+                    urls.push(results[i].data.items[j].link)
+                    titles.push(results[i].data.items[j].title)
+                };
             };
         };
     };
@@ -270,6 +298,12 @@ async function search(words, apikey=process.argv[2], engineid=process.argv[3]){
 }
 
 async function downloadWebsites(urls, justText = true){
+    /**
+     * Downloads text of the urls given, or returns html if justText is false.
+     * 
+     * In: ["http://example.com/", ...]
+     * Out: ["Example Domain\n ...", ...]
+     */
     var requests = [];
     for(var i = 0; i < urls.length; i++){
         requests.push(axios.get(urls[i]).catch(function(){}))
@@ -287,17 +321,27 @@ async function downloadWebsites(urls, justText = true){
     if(!justText){
         return htmls
     };
-
-    const styleConfig = {
-        linkProcess : function (link, text){return text},
-        imgProcess : function (){return ""},
-    }
-
     var texts = []
     for(var i = 0; i < htmls.length; i++){
-        texts.push(textVersion(htmls[i], styleConfig))
+        texts.push(html2text(htmls[i]))
     };
-    console.log(texts)
     return texts
 }
 
+//// Use section
+
+async function autoCitation(inputText, language="english", shingleSize = 2, apikey=process.argv[2], engineid=process.argv[3]){
+    var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
+    [inputWords, inputIndicesList] = normalizeAndremoveStopWords(inputWords, inputIndicesList, language="english");
+    [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
+    [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(function(){});
+    var comparedTexts = await downloadWebsites(comparedUrls, true).catch(function(){});
+    var comparedWords = comparedIndicesList = comparedShingles = comparedShingledIndicesList = [];
+    for(var i = 0; i < comparedTexts.length; i++){
+        [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
+        [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndremoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
+        [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language)
+    }
+}
+
+autoCitation("Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information...")
