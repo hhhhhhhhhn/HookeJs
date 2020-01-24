@@ -201,7 +201,7 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumCluste
     return newClusters
 };
 
-function findClusterStartAndEnd(cluster){
+function findClusterStartAndEndRelativeToShingles(cluster){
     /**
      * Gets the beggining and end of both sources of a cluster in format [[startSource1, endSource1],[startSource2, endSource2]]
      * In: [[3,5],[4,5],[2,7]]
@@ -226,13 +226,13 @@ function findClusterStartAndEnd(cluster){
     return [[startSource1, endSource1],[startSource2, endSource2]]
 };
 
-function findClusterStartAndEndRelativeToOriginalText(start, end, shingledIndicesList){
+function findClusterStartAndEndRelativeToOriginalText(shingleStart, shingleEnd, shingledIndicesList){
     /**
-     * Returns the indices of mathes based on the original text.
+     * Returns the indices of matches based on the original text.
      * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
      * Out: [1, 9]
      */
-    return [shingledIndicesList[start][0], shingledIndicesList[end][1]]
+    return [shingledIndicesList[shingleStart][0], shingledIndicesList[shingleEnd][1]]
 };
 
 //// Search section
@@ -330,18 +330,46 @@ async function downloadWebsites(urls, justText = true){
 
 //// Use section
 
-async function autoCitation(inputText, language="english", shingleSize = 2, apikey=process.argv[2], engineid=process.argv[3]){
+class Source{
+    constructor(source, matches, text){
+        this.source = source;
+        this.matches = matches;
+        this.text = text;
+    }
+}
+
+class Match{
+    constructor(cluster){
+        this.cluster = cluster
+    }
+    contextualize(inputShingledIndicesList, comparedShingledIndicesList){
+        [[this.inputShingleStart, this.inputShingleEnd],[this.comparedShingleStart, this.comparedShingleEnd]] = findClusterStartAndEndRelativeToShingles(this.cluster);
+        [this.inputStart, this.inputEnd] = findClusterStartAndEndRelativeToOriginalText(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList)
+        [this.comparedStart, this.comparedEnd] = findClusterStartAndEndRelativeToOriginalText(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList)
+        this.score = this.cluster.length / (this.inputShingleStart - this.inputShingleEnd)
+    }
+}
+
+async function match(inputText, language="english", shingleSize = 2, apikey=process.argv[2], engineid=process.argv[3], maximumGap=3, minimumClusterSize=5){
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
     [inputWords, inputIndicesList] = normalizeAndremoveStopWords(inputWords, inputIndicesList, language="english");
     [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
     [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(function(){});
     var comparedTexts = await downloadWebsites(comparedUrls, true).catch(function(){});
-    var comparedWords = comparedIndicesList = comparedShingles = comparedShingledIndicesList = [];
+    var sources = [];
     for(var i = 0; i < comparedTexts.length; i++){
         [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
         [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndremoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
-        [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language)
+        [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language);
+        comparedClustersTemp = findUnionAndCluster(inputShingles, comparedShinglesTemp, maximumGap ,minimumClusterSize)
+        matchesTemp = []
+        for(var j = 0; j < comparedClustersTemp.length; j++){
+            matchesTemp.push(Match(comparedClustersTemp[j]))
+            matchesTemp[j].contextualize(inputShingledIndicesList, comparedShingledIndicesListTemp)
+        }
+        sources.push(Source(comparedUrls[i], matchesTemp, comparedTexts[i]))
     }
+    return sources
 }
 
-autoCitation("Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information...")
+match("Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information...")
