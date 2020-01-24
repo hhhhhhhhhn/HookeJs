@@ -161,7 +161,6 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumCluste
             };
         };
     };
-    matches = [[0,0],[2,2],[1,1]];
     //clustering
     var clusters = [];
     var len = matches.length;
@@ -331,6 +330,9 @@ async function downloadWebsites(urls, justText = true){
 //// Use section
 
 class Source{
+    /**
+     * Class which represents a source, with the variable being source(its url), matches(array of class Match), and the text
+     */
     constructor(source, matches, text){
         this.source = source;
         this.matches = matches;
@@ -339,18 +341,30 @@ class Source{
 }
 
 class Match{
+    /**
+     * Represents a specific cluster, with extra funcionality
+     */
     constructor(cluster){
         this.cluster = cluster
     }
     contextualize(inputShingledIndicesList, comparedShingledIndicesList){
+        /**
+         * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared divided by the start and end
+         * of the cluster, or the length times density. 
+         */
         [[this.inputShingleStart, this.inputShingleEnd],[this.comparedShingleStart, this.comparedShingleEnd]] = findClusterStartAndEndRelativeToShingles(this.cluster);
-        [this.inputStart, this.inputEnd] = findClusterStartAndEndRelativeToOriginalText(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList)
-        [this.comparedStart, this.comparedEnd] = findClusterStartAndEndRelativeToOriginalText(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList)
-        this.score = this.cluster.length / (this.inputShingleStart - this.inputShingleEnd)
+        [this.inputStart, this.inputEnd] = findClusterStartAndEndRelativeToOriginalText(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList);
+        [this.comparedStart, this.comparedEnd] = findClusterStartAndEndRelativeToOriginalText(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList);
+        this.score = (this.cluster.length * this.cluster.length) / (this.inputShingleEnd - this.inputShingleStart)
     }
 }
 
 async function match(inputText, language="english", shingleSize = 2, apikey=process.argv[2], engineid=process.argv[3], maximumGap=3, minimumClusterSize=5){
+    /**
+     * Takes th input text and searches the internet for similar texts, and finds matches between them.
+     * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information..."
+     * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."}, ...]
+     */
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
     [inputWords, inputIndicesList] = normalizeAndremoveStopWords(inputWords, inputIndicesList, language="english");
     [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
@@ -358,16 +372,16 @@ async function match(inputText, language="english", shingleSize = 2, apikey=proc
     var comparedTexts = await downloadWebsites(comparedUrls, true).catch(function(){});
     var sources = [];
     for(var i = 0; i < comparedTexts.length; i++){
-        [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
-        [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndremoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
-        [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language);
-        comparedClustersTemp = findUnionAndCluster(inputShingles, comparedShinglesTemp, maximumGap ,minimumClusterSize)
-        matchesTemp = []
+        var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
+        var [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndremoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
+        var [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language);
+        var comparedClustersTemp = findUnionAndCluster(inputShingles, comparedShinglesTemp, maximumGap ,minimumClusterSize)
+        var matchesTemp = []
         for(var j = 0; j < comparedClustersTemp.length; j++){
-            matchesTemp.push(Match(comparedClustersTemp[j]))
+            matchesTemp.push(new Match(comparedClustersTemp[j]))
             matchesTemp[j].contextualize(inputShingledIndicesList, comparedShingledIndicesListTemp)
         }
-        sources.push(Source(comparedUrls[i], matchesTemp, comparedTexts[i]))
+        sources.push(new Source(comparedUrls[i], matchesTemp, comparedTexts[i]))
     }
     return sources
 }
