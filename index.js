@@ -263,7 +263,7 @@ function html2text(htmlCode){
     return htmlCode
 }
 
-async function search(words, apikey=process.argv[2], engineid=process.argv[3]){
+async function search(words, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID){
     /**
      * Splits input words into 32 word chunks and searches the with the google search api.
      * 
@@ -278,9 +278,9 @@ async function search(words, apikey=process.argv[2], engineid=process.argv[3]){
     };
     var searches = [];
     for(var i = 0; i < searchQueries.length; i++){
-        searches.push(customsearch.cse.list({cx: engineid, q: searchQueries[i], auth: apikey}).catch(function(){}))
+        searches.push(customsearch.cse.list({cx: engineid, q: searchQueries[i], auth: apikey}).catch(console.log))
     };
-    results = await Promise.all(searches);
+    results = await Promise.all(searches).catch(console.log);
     var urls = [];
     var titles = [];
     for(var i = 0; i < results.length; i++){
@@ -305,9 +305,9 @@ async function downloadWebsites(urls, justText = true){
      */
     var requests = [];
     for(var i = 0; i < urls.length; i++){
-        requests.push(axios.get(urls[i]).catch(function(){}))
+        requests.push(axios.get(urls[i]).catch(console.log))
     };
-    var responses = await Promise.all(requests);
+    var responses = await Promise.all(requests).catch(console.log);
     var htmls = [];
 
     for(var i = 0; i < responses.length; i++){
@@ -372,7 +372,7 @@ class Match{
     }
 }
 
-async function match(inputText, language="english", shingleSize = 2, apikey=process.argv[2], engineid=process.argv[3], maximumGap=3, minimumClusterSize=5){
+async function match(inputText, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5){
     /**
      * Takes th input text and searches the internet for similar texts, and finds matches between them.
      * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information..."
@@ -381,8 +381,8 @@ async function match(inputText, language="english", shingleSize = 2, apikey=proc
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
     [inputWords, inputIndicesList] = normalizeAndremoveStopWords(inputWords, inputIndicesList, language="english");
     [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
-    [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(function(){});
-    var comparedTexts = await downloadWebsites(comparedUrls, true).catch(function(){});
+    [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(console.log);
+    var comparedTexts = await downloadWebsites(comparedUrls, true).catch(console.log);
     var sources = [];
     for(var i = 0; i < comparedTexts.length; i++){
         var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
@@ -459,7 +459,7 @@ function findUniqueSubstring(text, replacementIndex, minimumSize = 10){
     return text.slice(0, replacementIndex)
 }
 
-async function autoCitation(inputText, replace = false, language="english", shingleSize = 2, apikey=process.argv[2], engineid=process.argv[3], maximumGap=3, minimumClusterSize=5, percentToMerge = 0.6){
+async function autoCitation(inputText, replace = false, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5, percentToMerge = 0.6){
     /**
      * Uses previous functions to automatically generate texts to be replaced and a bibliography based on the internet
      * 
@@ -484,7 +484,7 @@ async function autoCitation(inputText, replace = false, language="english", shin
      *
      * [1] Example Domain (n.d.). Retrieved from https://example.com/"
      */
-    var sources = await match(inputText, language, shingleSize, apikey, engineid, maximumGap, minimumClusterSize);
+    var sources = await match(inputText, language, shingleSize, apikey, engineid, maximumGap, minimumClusterSize).catch(console.log);
     var matches = []
     for(var i = 0; i < sources.length; i++){
         Array.prototype.push.apply(matches, sources[i].matches)
@@ -526,3 +526,6 @@ async function autoCitation(inputText, replace = false, language="english", shin
     }
     return inputText + bibliography
 }
+
+exports.match = match;
+exports.autoCitation = autoCitation;
