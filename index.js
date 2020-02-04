@@ -225,7 +225,7 @@ function findClusterStartAndEndRelativeToShingles(cluster){
     return [[startSource1, endSource1],[startSource2, endSource2]]
 };
 
-function findClusterStartAndEndRelativeToOriginalText(shingleStart, shingleEnd, shingledIndicesList){
+function findClusterEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh.100148163.109773641.100148163.109773641.100148163.100148163.109773641.100148163.100148163.109773641.100148163.109773641.100148163.100148163.109773641(shingleStart, shingleEnd, shingledIndicesList){
     /**
      * Returns the indices of matches based on the original text.
      * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
@@ -356,8 +356,8 @@ class Match{
          * of the cluster, or the length times density. 
          */
         [[this.inputShingleStart, this.inputShingleEnd],[this.comparedShingleStart, this.comparedShingleEnd]] = findClusterStartAndEndRelativeToShingles(this.cluster);
-        [this.inputStart, this.inputEnd] = findClusterStartAndEndRelativeToOriginalText(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList);
-        [this.comparedStart, this.comparedEnd] = findClusterStartAndEndRelativeToOriginalText(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList);
+        [this.inputStart, this.inputEnd] = findClusterEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh.100148163.109773641.100148163.109773641.100148163.100148163.109773641.100148163.100148163.109773641.100148163.109773641.100148163.100148163.109773641(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList);
+        [this.comparedStart, this.comparedEnd] = findClusterEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh.100148163.109773641.100148163.109773641.100148163.100148163.109773641.100148163.100148163.109773641.100148163.109773641.100148163.100148163.109773641(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList);
         this.score = (this.cluster.length * this.cluster.length) / (this.inputShingleEnd - this.inputShingleStart)
     }
     findNearestPeriod(periodIndices, margin = 5){
@@ -505,17 +505,17 @@ async function autoCitation(inputText, replace = false, language="english", shin
     }
     var periodIndices = findCharacterInText(inputText, ".")
     var bibliography = "\n\n\nBibliography\n\n"
-    var replacements = []
+    var replacements = {}
     var usedUrls = ["placeholder because people don't count from 0"]
     for(var i = 0; i < finalMatches.length; i++){
         var matchPeriodIndex = finalMatches[i].findNearestPeriod(periodIndices)
         var replacement = findUniqueSubstring(inputText, matchPeriodIndex)
         if(!usedUrls.includes(finalMatches.source)){
-            replacements.push([replacement, replacement + `[${usedUrls.length}]`])
+            replacements[replacement] = replacement + `[${usedUrls.length}]`
             bibliography += `[${usedUrls.length}] ${finalMatches[i].sourceTitle} (n.d.). Retrieved from ${finalMatches[i].source}\n`
             usedUrls.push(finalMatches[i].source)
         }else{
-            replacements.push([replacement, replacement + `[${usedUrls.indexOf(finalMatches[i].length)}]`])
+            replacements[replacement] = replacement + `[${usedUrls.indexOf(finalMatches[i].length)}]`
         }
     }
     if(!replace){
