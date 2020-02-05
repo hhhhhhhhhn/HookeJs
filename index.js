@@ -372,7 +372,7 @@ class Match{
     }
 }
 
-async function match(inputText, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5){
+async function match({inputText="", language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}){
     /**
      * Takes th input text and searches the internet for similar texts, and finds matches between them.
      * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information..."
@@ -459,7 +459,7 @@ function findUniqueSubstring(text, replacementIndex, minimumSize = 10){
     return text.slice(0, replacementIndex)
 }
 
-async function autoCitation(inputText, replace = false, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5, percentToMerge = 0.6){
+async function autoCitation({inputText="", replace = false, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5, percentToMerge = 0.6}={}){
     /**
      * Uses previous functions to automatically generate texts to be replaced and a bibliography based on the internet
      * 
