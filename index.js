@@ -225,7 +225,7 @@ function findClusterStartAndEndRelativeToShingles(cluster){
     return [[startSource1, endSource1],[startSource2, endSource2]]
 };
 
-function findClusterEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh.100148163.109773641.100148163.109773641.100148163.100148163.109773641.100148163.100148163.109773641.100148163.109773641.100148163.100148163.109773641(shingleStart, shingleEnd, shingledIndicesList){
+function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList){
     /**
      * Returns the indices of matches based on the original text.
      * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
@@ -356,8 +356,8 @@ class Match{
          * of the cluster, or the length times density. 
          */
         [[this.inputShingleStart, this.inputShingleEnd],[this.comparedShingleStart, this.comparedShingleEnd]] = findClusterStartAndEndRelativeToShingles(this.cluster);
-        [this.inputStart, this.inputEnd] = findClusterEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh.100148163.109773641.100148163.109773641.100148163.100148163.109773641.100148163.100148163.109773641.100148163.109773641.100148163.100148163.109773641(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList);
-        [this.comparedStart, this.comparedEnd] = findClusterEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh.100148163.109773641.100148163.109773641.100148163.100148163.109773641.100148163.100148163.109773641.100148163.109773641.100148163.100148163.109773641(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList);
+        [this.inputStart, this.inputEnd] = findClusterStartAndEnd(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList);
+        [this.comparedStart, this.comparedEnd] = findClusterStartAndEnd(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList);
         this.score = (this.cluster.length * this.cluster.length) / (this.inputShingleEnd - this.inputShingleStart)
     }
     findNearestPeriod(periodIndices, margin = 5){
