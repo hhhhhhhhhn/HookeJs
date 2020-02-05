@@ -352,13 +352,13 @@ class Match{
     }
     contextualize(inputShingledIndicesList, comparedShingledIndicesList){
         /**
-         * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared divided by the start and end
-         * of the cluster, or the length times density. 
+         * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared divided by the end minus start
+         * of the cluster, or the length times density, or zero if it is len zero
          */
         [[this.inputShingleStart, this.inputShingleEnd],[this.comparedShingleStart, this.comparedShingleEnd]] = findClusterStartAndEndRelativeToShingles(this.cluster);
         [this.inputStart, this.inputEnd] = findClusterStartAndEnd(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList);
         [this.comparedStart, this.comparedEnd] = findClusterStartAndEnd(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList);
-        this.score = (this.cluster.length * this.cluster.length) / (this.inputShingleEnd - this.inputShingleStart)
+        this.score = ((this.inputShingleEnd - this.inputShingleStart) > 1) ? (this.cluster.length * this.cluster.length) / (this.inputShingleEnd - this.inputShingleStart) : 0;
     }
     findNearestPeriod(periodIndices, margin = 5){
         /**
@@ -379,9 +379,9 @@ async function match({inputText="", language="english", shingleSize = 2, apikey=
      * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."}, ...]
      */
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
-    [inputWords, inputIndicesList] = normalizeAndremoveStopWords(inputWords, inputIndicesList, language="english");
-    [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
-    [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(console.log);
+    var [inputWords, inputIndicesList] = normalizeAndremoveStopWords(inputWords, inputIndicesList, language="english");
+    var [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
+    var [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(console.log);
     var comparedTexts = await downloadWebsites(comparedUrls, true).catch(console.log);
     var sources = [];
     for(var i = 0; i < comparedTexts.length; i++){
@@ -484,18 +484,26 @@ async function autoCitation({inputText="", replace = false, language="english", 
      *
      * [1] Example Domain (n.d.). Retrieved from https://example.com/"
      */
-    var sources = await match(inputText, language, shingleSize, apikey, engineid, maximumGap, minimumClusterSize).catch(console.log);
+    var sources = await match({inputText:inputText, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
     var matches = []
     for(var i = 0; i < sources.length; i++){
         Array.prototype.push.apply(matches, sources[i].matches)
     }
     var finalMatches = []
     for(var i = 0; i < matches.length; i++){
+        if(matches[i].score < 1){
+            willBeOnFinal = false;
+            continue
+        }
         var willBeOnFinal = true;
         for(var j = 0; j < matches.length; j++){
             if (findIntervalUnionPercent(matches[i].inputShingleStart, matches[i].inputShingleEnd, matches[j].inputShingleStart, matches[j].inputShingleEnd) >= percentToMerge){
-                if(matches[i].score < matches[j].score){
+                if(matches[i].score < matches[j].score && i!=j){
                     willBeOnFinal = false
+                }else if(matches[i].score == matches[j].score && i!=j){
+                    if(i < j){
+                        willBeOnFinal = false
+                    }
                 }
             }
         }
@@ -521,8 +529,8 @@ async function autoCitation({inputText="", replace = false, language="english", 
     if(!replace){
         return [replacements, bibliography]
     }
-    for(var i = 0; i < replacements.length; i++){
-        inputText = inputText.replace(replacements[i][0], replacements[i][1])
+    for(var [text, replacement] of Object.entries(replacements)){
+        inputText = inputText.replace(text, replacement)
     }
     return inputText + bibliography
 }
