@@ -459,7 +459,7 @@ function findUniqueSubstring(text, replacementIndex, minimumSize = 10){
     return text.slice(0, replacementIndex)
 }
 
-async function autoCitation({inputText="", replace = false, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5, percentToMerge = 0.6}={}){
+async function autoCitation({text="", replace = false, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5, percentToMerge = 0.6}={}){
     /**
      * Uses previous functions to automatically generate texts to be replaced and a bibliography based on the internet
      * 
@@ -484,7 +484,7 @@ async function autoCitation({inputText="", replace = false, language="english", 
      *
      * [1] Example Domain (n.d.). Retrieved from https://example.com/"
      */
-    var sources = await match({inputText:inputText, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
+    var sources = await match({inputText:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
     var matches = []
     for(var i = 0; i < sources.length; i++){
         Array.prototype.push.apply(matches, sources[i].matches)
@@ -511,13 +511,13 @@ async function autoCitation({inputText="", replace = false, language="english", 
             finalMatches.push(matches[i])
         }
     }
-    var periodIndices = findCharacterInText(inputText, ".")
+    var periodIndices = findCharacterInText(text, ".")
     var bibliography = "\n\n\nBibliography\n\n"
     var replacements = {}
     var usedUrls = ["placeholder because people don't count from 0"]
     for(var i = 0; i < finalMatches.length; i++){
         var matchPeriodIndex = finalMatches[i].findNearestPeriod(periodIndices)
-        var replacement = findUniqueSubstring(inputText, matchPeriodIndex)
+        var replacement = findUniqueSubstring(text, matchPeriodIndex)
         if(!usedUrls.includes(finalMatches.source)){
             replacements[replacement] = replacement + `[${usedUrls.length}]`
             bibliography += `[${usedUrls.length}] ${finalMatches[i].sourceTitle} (n.d.). Retrieved from ${finalMatches[i].source}\n`
@@ -529,11 +529,10 @@ async function autoCitation({inputText="", replace = false, language="english", 
     if(!replace){
         return [replacements, bibliography]
     }
-    for(var [text, replacement] of Object.entries(replacements)){
-        inputText = inputText.replace(text, replacement)
+    for(var [replacedText, replacement] of Object.entries(replacements)){
+        text = text.replace(replacedText, replacement)
     }
-    return inputText + bibliography
-}
+    return text + bibliography
+};
 
-exports.match = match;
-exports.autoCitation = autoCitation;
+module.exports = {match, autoCitation}
