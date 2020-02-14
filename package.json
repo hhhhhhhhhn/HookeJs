@@ -1,7 +1,7 @@
 {
   "name": "hookejs",
   "version": "1.0.0",
-  "description": "A node port of Hooke",
+  "description": "An open source plagiarism detector and autocitation built in node.",
   "main": "index.js",
   "scripts": {
     "test": "node index"
@@ -11,7 +11,7 @@
     "url": "git+https://github.com/oekshido/HookeJs.git"
   },
   "author": "oekshido",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/oekshido/HookeJs/issues"
   },
