@@ -4,7 +4,7 @@
   "description": "An open source plagiarism detector and autocitation built in node.",
   "main": "index.js",
   "scripts": {
-    "test": "node index"
+    "test": "node test"
   },
   "repository": {
     "type": "git",
@@ -21,5 +21,8 @@
     "googleapis": "^47.0.0",
     "html-to-text": "^5.1.1",
     "node-snowball": "^0.4.0"
+  },
+  "devDependencies": {
+    "itworksjs": "^1.0.2"
   }
 }
