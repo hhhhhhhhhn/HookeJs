@@ -47,7 +47,7 @@ function getWords(text, spaceIndices) {
     return [words, indicesList]
 };
 
-function normalizeAndremoveStopWords(words, indicesList, language = "english"){
+function normalizeAndRemoveStopWords(words, indicesList, language = "english"){
     /**
      * Leaves only allowed characters on each word and lowers it, and then removes the stopwords (from stopwords.json)
      * 
@@ -379,14 +379,14 @@ async function match({inputText="", language="english", shingleSize = 2, apikey=
      * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."}, ...]
      */
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
-    var [inputWords, inputIndicesList] = normalizeAndremoveStopWords(inputWords, inputIndicesList, language="english");
+    var [inputWords, inputIndicesList] = normalizeAndRemoveStopWords(inputWords, inputIndicesList, language="english");
     var [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
     var [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(console.log);
     var comparedTexts = await downloadWebsites(comparedUrls, true).catch(console.log);
     var sources = [];
     for(var i = 0; i < comparedTexts.length; i++){
         var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
-        var [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndremoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
+        var [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndRemoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
         var [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language);
         var comparedClustersTemp = findUnionAndCluster(inputShingles, comparedShinglesTemp, maximumGap ,minimumClusterSize);
         var matchesTemp = [];

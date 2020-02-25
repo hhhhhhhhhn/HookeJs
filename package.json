@@ -1,6 +1,6 @@
 {
   "name": "hookejs",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "An open source plagiarism detector and autocitation built in node.",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,6 @@
     "node-snowball": "^0.4.0"
   },
   "devDependencies": {
-    "itworksjs": "^1.0.2"
+    "itworksjs": "^1.0.3"
   }
 }
