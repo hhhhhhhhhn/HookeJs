@@ -235,9 +235,30 @@ function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList){
 };
 
 //// Search section
+
 const {google} = require('googleapis');
 const customsearch = google.customsearch('v1');
 const axios = require("axios");
+const cheerio = require("cheerio")
+
+function sleep(ms) {
+    /** Waits the given amount if awaited */
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function includesSubstringFromArray(string, array){
+    /** Checks if a list contains a substring of the given string
+     * 
+     * In: "hello there", ["xyz", "thi", "re"]
+     * 
+     * Out: true
+     */
+    for(var substring of array){
+        if(string.includes(substring)) return true
+    }
+    return false
+}
+
 
 function html2text(htmlCode){
     /**
@@ -263,11 +284,84 @@ function html2text(htmlCode){
     return htmlCode
 }
 
-async function search(words, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID){
+function getTitle(html){
+    /** Gets contents inside title tag in html.
+     * 
+     * In: "<head> ... <title >HookeJs/index.js at master · oekshido/HookeJs</title> ... "
+     * 
+     * Out: HookeJs/index.js at master · oekshido/HookeJs
+     */
+    if(typeof html != typeof "string"){
+        return ""
+    }
+    a = RegExp("title(.*?)/title","i")
+    b =  RegExp(">(.*?)<","i")
+    try{
+        return html.match(a)[0].match(b)[0].slice(1,-1)
+    }catch{
+        return ""
+    }
+}
+
+async function singleSearchScrape(query){
+    /**Searches the given query scraping google
+     * 
+     * In: "Jazz"
+     * 
+     * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
+     */
+    headers = {
+        "accept":"*/*",
+        "accept-encoding": "identity;q=1, *;q=0",
+        "accept-language": "en,es-CL;q=0.9,es;q=0.8",
+        "range": "bytes=0-",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Mobile Safari/537.36"
+    }
+    ignore = [
+        "google.com/preferences",
+        "accounts.google"
+    ]
+    url = new URL("https://www.google.com/search")
+    url.searchParams.append("q", query)
+    response = await axios.get(url.href)
+    $ = cheerio.load(response.data)
+    urls = []
+    $('a').each( function () {
+        var link = $(this).attr('href')
+        if(link.slice(0,7) == "/url?q=" && !includesSubstringFromArray(link, ignore)){
+            urls.push(link.slice(7).split("&")[0])
+        }
+     })
+    return urls
+}
+
+async function singleSearchApi(query, apikey, engineid){
+    /**Searches the given query using the custom search engine api
+     * 
+     * In: "Jazz"
+     * 
+     * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
+     */
+    var response = await customsearch.cse.list({cx: engineid, q: query, auth: apikey})
+    if (response.data != undefined && response.data.items != undefined){
+        var urls = []
+        for(item of response.data.items){
+            urls.push(item.link)
+        }
+        return urls
+
+    }else{
+        return []
+    }
+}
+
+async function search(words, {apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, sleepTime=3000}={}){
     /**
-     * Splits input words into 32 word chunks and searches the with the google search api.
+     * Splits input words into 32 word chunks and searches the with the google custom search api or by scraping.
      * 
      * In: "Do I understand it correctly that anotherCall() will be called only when someCall() is completed? What is the most elegant way of calling them in parallel?".split(" ")
+     * 
      * Out: [ ['https://stackoverflow.com/q/46466306', ... ], ['javascript - Call async/await functions in parallel - Stack Overflow', ... ]  ]
      */
     const limit = 32; //32 word limit on google search
@@ -277,23 +371,24 @@ async function search(words, apikey=process.env.G_API_KEY, engineid=process.env.
         searchQueries.push( words.slice(i*limit, (i+1)*limit).join(" ") )
     };
     var searches = [];
-    for(var i = 0; i < searchQueries.length; i++){
-        searches.push(customsearch.cse.list({cx: engineid, q: searchQueries[i], auth: apikey}).catch(console.log))
-    };
+    if(apikey && engineid){
+        for(query of searchQueries){
+            searches.push(singleSearchApi(query, apikey, engineid).catch(console.log))
+        };
+    }else{
+        for(query of searchQueries){
+            await sleep(sleepTime)
+            searches.push(singleSearchScrape(query).catch(console.log))
+        };
+    }
     results = await Promise.all(searches).catch(console.log);
     var urls = [];
-    var titles = [];
-    for(var i = 0; i < results.length; i++){
-        if(results[i].data.items != undefined){
-            for (var j = 0; j < results[i].data.items.length; j++){
-                if(!urls.includes(results[i].data.items[j].link)){
-                    urls.push(results[i].data.items[j].link)
-                    titles.push(results[i].data.items[j].title)
-                };
-            };
-        };
-    };
-    return [urls, titles]
+    for(var result of results){
+        for(url of result){
+            urls.push(url)
+        }
+    }
+    return urls
 }
 
 async function downloadWebsites(urls, justText = true){
@@ -321,10 +416,13 @@ async function downloadWebsites(urls, justText = true){
         return htmls
     };
     var texts = []
+    var titles = []
+
     for(var i = 0; i < htmls.length; i++){
         texts.push(html2text(htmls[i]))
+        titles.push(getTitle(htmls[i]))
     };
-    return texts
+    return [texts, titles]
 }
 
 //// Use section
@@ -381,8 +479,8 @@ async function match({inputText="", language="english", shingleSize = 2, apikey=
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
     var [inputWords, inputIndicesList] = normalizeAndRemoveStopWords(inputWords, inputIndicesList, language="english");
     var [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
-    var [comparedUrls, comparedTitles] = await search(inputWords, apikey, engineid).catch(console.log);
-    var comparedTexts = await downloadWebsites(comparedUrls, true).catch(console.log);
+    var comparedUrls = await search(inputWords, {apikey: apikey, engineid: engineid}).catch(console.log);
+    var [comparedTexts, comparedTitles] = await downloadWebsites(comparedUrls, true).catch(console.log);
     var sources = [];
     for(var i = 0; i < comparedTexts.length; i++){
         var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));

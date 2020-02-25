@@ -23,4 +23,4 @@ Returns `Source` objects with a list of `Match` objects, which include the match
 Returns the given text with citations (using the `match` function) or the replacements needed to make the citation and the bibliography (controlled by the `replace` parameter)
 
 ## Note
-This package (for now) requires a google custom search api key and engine id, which can be accesed through function parameters or the G_API_KEY and G_ENGINE_ID enviroment variables. 
+This package can a google custom search api key and engine id, which can be accesed through function parameters or the G_API_KEY and G_ENGINE_ID enviroment variables. If not provided, it will scrape the results (use at your own risk)

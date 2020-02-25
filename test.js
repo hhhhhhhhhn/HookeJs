@@ -1,7 +1,7 @@
 const {it, works, functions} = require("itworksjs")
 const hooke = require(".")
 
-var {shingleAndStemmer, normalizeAndRemoveStopWords} = functions(["shingleAndStemmer", "normalizeAndRemoveStopWords"]).from("./index.js")
+var {shingleAndStemmer, normalizeAndRemoveStopWords, singleSearchScrape} = functions(["shingleAndStemmer", "normalizeAndRemoveStopWords", "singleSearchScrape"]).from("./index.js")
 
 it("should be able to remove stopwords and normalize", ()=>{
     var [words, indicesList] = normalizeAndRemoveStopWords([ 'Hello,', 'my', 'name', 'is', 'jazz' ] ,  [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ], [20,25]])
@@ -39,6 +39,13 @@ it("should be able to stem and shingle in spanish", ()=>{
     }
 })
 
+it("should scrape google", async ()=>{
+    urls = await singleSearchScrape("Jazz")
+    if(!!urls.length == false){
+        throw new Error("Couldn't scrape google")
+    }
+})
+
 it("should return matches on a plagiraised text (Sherlock Holmes Wikipedia)", async ()=>{
     sources = await hooke.match({inputText: "Sherlock Holmes (/ˈʃɜːrlɒk ˈhoʊmz/ or /-ˈhoʊlmz/) is a fictional private detective created by British author Sir Arthur Conan Doyle. Referring to himself as a consulting detective in the stories, Holmes is known for his proficiency with observation, deduction, forensic science, and logical reasoning that borders on the fantastic, which he employs when investigating cases for a wide variety of clients, including Scotland Yard."})
     if(sources.length == 0){
@@ -48,6 +55,22 @@ it("should return matches on a plagiraised text (Sherlock Holmes Wikipedia)", as
 
 it("should be able to find matches for autocitation", async ()=>{
     [replacements, bibliography] = await hooke.autoCitation({text: "Sherlock Holmes (/ˈʃɜːrlɒk ˈhoʊmz/ or /-ˈhoʊlmz/) is a fictional private detective created by British author Sir Arthur Conan Doyle. Referring to himself as a consulting detective in the stories, Holmes is known for his proficiency with observation, deduction, forensic science, and logical reasoning that borders on the fantastic, which he employs when investigating cases for a wide variety of clients, including Scotland Yard."})
+    if(replacements.length == 0){
+        throw new Error("No replacements for Sherlock Holmes autocitation")
+    }else if(bibliography == "\n\n\nBibliography\n\n"){
+        throw new Error("Bibliography not filled for autocitation")
+    }
+})
+
+it("should return matches on a plagiraised text (Sherlock Holmes Wikipedia) (scrape)", async ()=>{
+    sources = await hooke.match({inputText: "Sherlock Holmes (/ˈʃɜːrlɒk ˈhoʊmz/ or /-ˈhoʊlmz/) is a fictional private detective created by British author Sir Arthur Conan Doyle. Referring to himself as a consulting detective in the stories, Holmes is known for his proficiency with observation, deduction, forensic science, and logical reasoning that borders on the fantastic, which he employs when investigating cases for a wide variety of clients, including Scotland Yard.", apikey: null, engineid:null})
+    if(sources.length == 0){
+        throw new Error("No matches found for the Sherlock Holmes wikipedia Test")
+    }
+})
+
+it("should be able to find matches for autocitation  (scrape)", async ()=>{
+    [replacements, bibliography] = await hooke.autoCitation({text: "Sherlock Holmes (/ˈʃɜːrlɒk ˈhoʊmz/ or /-ˈhoʊlmz/) is a fictional private detective created by British author Sir Arthur Conan Doyle. Referring to himself as a consulting detective in the stories, Holmes is known for his proficiency with observation, deduction, forensic science, and logical reasoning that borders on the fantastic, which he employs when investigating cases for a wide variety of clients, including Scotland Yard.", apikey: null, engineid:null})
     if(replacements.length == 0){
         throw new Error("No replacements for Sherlock Holmes autocitation")
     }else if(bibliography == "\n\n\nBibliography\n\n"){
