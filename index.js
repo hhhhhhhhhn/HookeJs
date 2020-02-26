@@ -324,7 +324,7 @@ async function singleSearchScrape(query){
     ]
     url = new URL("https://www.google.com/search")
     url.searchParams.append("q", query)
-    response = await axios.get(url.href)
+    response = await axios.get(url.href, {timeout: 60000})
     $ = cheerio.load(response.data)
     urls = []
     $('a').each( function () {
@@ -400,7 +400,7 @@ async function downloadWebsites(urls, justText = true){
      */
     var requests = [];
     for(var i = 0; i < urls.length; i++){
-        requests.push(axios.get(urls[i]).catch(console.log))
+        requests.push(axios.get(urls[i], {timeout:60000}).catch(console.log))
     };
     var responses = await Promise.all(requests).catch(console.log);
     var htmls = [];
