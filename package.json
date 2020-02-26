@@ -23,6 +23,6 @@
     "node-snowball": "^0.4.0"
   },
   "devDependencies": {
-    "itworksjs": "^1.0.3"
+    "itworksjs": "^1.0.5"
   }
 }
