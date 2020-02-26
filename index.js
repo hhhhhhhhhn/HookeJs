@@ -356,41 +356,6 @@ async function singleSearchApi(query, apikey, engineid){
     }
 }
 
-async function search(words, {apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, sleepTime=3000}={}){
-    /**
-     * Splits input words into 32 word chunks and searches the with the google custom search api or by scraping.
-     * 
-     * In: "Do I understand it correctly that anotherCall() will be called only when someCall() is completed? What is the most elegant way of calling them in parallel?".split(" ")
-     * 
-     * Out: [ ['https://stackoverflow.com/q/46466306', ... ], ['javascript - Call async/await functions in parallel - Stack Overflow', ... ]  ]
-     */
-    const limit = 32; //32 word limit on google search
-    var searchQueries = [];
-    var len = Math.ceil(words.length/limit);
-    for(var i = 0; i < len; i++){
-        searchQueries.push( words.slice(i*limit, (i+1)*limit).join(" ") )
-    };
-    var searches = [];
-    if(apikey && engineid){
-        for(query of searchQueries){
-            searches.push(singleSearchApi(query, apikey, engineid).catch(console.log))
-        };
-    }else{
-        for(query of searchQueries){
-            await sleep(sleepTime)
-            searches.push(singleSearchScrape(query).catch(console.log))
-        };
-    }
-    results = await Promise.all(searches).catch(console.log);
-    var urls = [];
-    for(var result of results){
-        for(url of result){
-            urls.push(url)
-        }
-    }
-    return urls
-}
-
 async function downloadWebsites(urls, justText = true){
     /**
      * Downloads text of the urls given, or returns html if justText is false.
@@ -476,24 +441,43 @@ async function match({inputText="", language="english", shingleSize = 2, apikey=
      * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information..."
      * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."}, ...]
      */
+    var sources = []
+
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
     var [inputWords, inputIndicesList] = normalizeAndRemoveStopWords(inputWords, inputIndicesList, language="english");
     var [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
-    var comparedUrls = await search(inputWords, {apikey: apikey, engineid: engineid}).catch(console.log);
-    var [comparedTexts, comparedTitles] = await downloadWebsites(comparedUrls, true).catch(console.log);
-    var sources = [];
-    for(var i = 0; i < comparedTexts.length; i++){
-        var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
-        var [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndRemoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
-        var [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language);
-        var comparedClustersTemp = findUnionAndCluster(inputShingles, comparedShinglesTemp, maximumGap ,minimumClusterSize);
-        var matchesTemp = [];
-        for(var j = 0; j < comparedClustersTemp.length; j++){
-            matchesTemp.push(new Match(comparedClustersTemp[j], comparedUrls[i], comparedTitles[i]));
-            matchesTemp[j].contextualize(inputShingledIndicesList, comparedShingledIndicesListTemp)
-        };
-        sources.push(new Source(comparedUrls[i], matchesTemp, comparedTexts[i], comparedTitles[i]))
-    };
+
+    var limit = 32  //32 word limit on google search
+    var len = Math.ceil(inputWords.length/limit)
+    var searchQueries = []
+    for(var i = 0; i < len; i++){
+        searchQueries.push( inputWords.slice(i*limit, (i+1)*limit).join(" ") )
+    }
+
+    for(var query of searchQueries){
+        if(apikey && engineid){
+            try {
+                var comparedUrls = await singleSearchApi(query, apikey, engineid)
+            } catch {
+                var comparedUrls = await singleSearchScrape(query)
+            }
+        }else{
+            var comparedUrls = await singleSearchScrape(query)
+        }
+        var [comparedTexts, comparedTitles] = await downloadWebsites(comparedUrls, true).catch(console.log);
+        for(var i = 0; i < comparedTexts.length; i++){
+            var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
+            var [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndRemoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
+            var [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language);
+            var comparedClustersTemp = findUnionAndCluster(inputShingles, comparedShinglesTemp, maximumGap ,minimumClusterSize);
+            var matchesTemp = [];
+            for(var j = 0; j < comparedClustersTemp.length; j++){
+                matchesTemp.push(new Match(comparedClustersTemp[j], comparedUrls[i], comparedTitles[i]));
+                matchesTemp[j].contextualize(inputShingledIndicesList, comparedShingledIndicesListTemp)
+            }
+            sources.push(new Source(comparedUrls[i], matchesTemp, comparedTexts[i], comparedTitles[i]))
+        }
+    }
     return sources
 }
 
@@ -632,5 +616,7 @@ async function autoCitation({text="", replace = false, language="english", shing
     }
     return text + bibliography
 };
+
+match({inputText: `Sherlock Holmes (/ˈʃɜːrlɒk ˈhoʊmz/ or /-ˈhoʊlmz/) is a fictional private detective created by British author Sir Arthur Conan Doyle. Referring to himself as a "consulting detective" in the stories, Holmes is known for his proficiency with observation, deduction, forensic science, and logical reasoning that borders on the fantastic, which he employs when investigating cases for a wide variety of clients, including Scotland Yard.`}).then(console.log)
 
 module.exports = {match, autoCitation}
