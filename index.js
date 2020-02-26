@@ -241,11 +241,6 @@ const customsearch = google.customsearch('v1');
 const axios = require("axios");
 const cheerio = require("cheerio")
 
-function sleep(ms) {
-    /** Waits the given amount if awaited */
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function includesSubstringFromArray(string, array){
     /** Checks if a list contains a substring of the given string
      * 
@@ -435,7 +430,7 @@ class Match{
     }
 }
 
-async function match({inputText="", language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}){
+async function match({inputText="", language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}={}){
     /**
      * Takes th input text and searches the internet for similar texts, and finds matches between them.
      * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information..."
@@ -479,6 +474,24 @@ async function match({inputText="", language="english", shingleSize = 2, apikey=
         }
     }
     return sources
+}
+
+async function matchPrint({text="",minScore=5, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}={}){
+    /**
+     * Runs thr match function and prints it
+     */
+    var sources = await match({inputText:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
+    console.log("\n\n\nComparison")
+    for(source of sources){
+        for(match of source.matches){
+            if(match.score >= minScore){
+                console.log(`\n\n\nFROM ${source.source}\n`)
+                console.log(`ORIGINAL: ${text.slice(match.inputStart, match.inputEnd)}\n\n`)
+                console.log(`COMPARED: ${source.text.slice(match.comparedStart, match.comparedEnd)}`)
+                console.log(`SCORE: ${match.score}`)
+            }
+        }
+    }
 }
 
 function findIntervalUnionPercent(start1, end1, start2, end2){
@@ -617,4 +630,4 @@ async function autoCitation({text="", replace = false, language="english", shing
     return text + bibliography
 };
 
-module.exports = {match, autoCitation}
+module.exports = {match, autoCitation, matchPrint}
