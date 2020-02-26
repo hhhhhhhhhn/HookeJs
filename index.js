@@ -99,7 +99,9 @@ function shingleAndStemmer(words, indicesList, shingleSize = 1, language = "engl
 function union(array1, array2){
     /**
      * Auxiliary function which unites two arrays, skipping duplicates
+     * 
      * In: [1,2,4,5,7] , [3,4,5,6,7,8]
+     * 
      * Out: [1,2,4,5,7,3,6,8]
      */
     var len = array2.length
@@ -110,6 +112,21 @@ function union(array1, array2){
     };
     return array1
 };
+
+function diff(array1, array2){
+    /**
+     * Auxiliary function which finds the difference of two arrays (based on the first one)
+     * 
+     * In: [1,2,3,4,9], [2,4,7,8]
+     * 
+     * Out: [1,3,9]
+     */
+    var output = []
+    for(element of array1){
+        if(!array2.includes(element)) output.push(element)
+    }
+    return output
+}
 
 function arraysEqual(array1, array2){
     /**
@@ -449,6 +466,7 @@ async function match({inputText="", language="english", shingleSize = 2, apikey=
         searchQueries.push( inputWords.slice(i*limit, (i+1)*limit).join(" ") )
     }
 
+    var usedUrls = []
     for(var query of searchQueries){
         if(apikey && engineid){
             try {
@@ -459,6 +477,10 @@ async function match({inputText="", language="english", shingleSize = 2, apikey=
         }else{
             var comparedUrls = await singleSearchScrape(query)
         }
+
+        comparedUrls = diff(comparedUrls, usedUrls)
+        usedUrls = union(usedUrls, comparedUrls)
+
         var [comparedTexts, comparedTitles] = await downloadWebsites(comparedUrls, true).catch(console.log);
         for(var i = 0; i < comparedTexts.length; i++){
             var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
