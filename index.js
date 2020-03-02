@@ -447,12 +447,13 @@ class Match{
     }
 }
 
-async function match({inputText="", language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}={}){
+async function match({text="", language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}={}){
     /**
      * Takes th input text and searches the internet for similar texts, and finds matches between them.
      * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information..."
      * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."}, ...]
      */
+    var inputText = text
     var sources = []
 
     var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
@@ -502,7 +503,7 @@ async function matchPrint({text="",minScore=5, language="english", shingleSize =
     /**
      * Runs thr match function and prints it
      */
-    var sources = await match({inputText:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
+    var sources = await match({text:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
     console.log("\n\n\nComparison")
     for(source of sources){
         for(match of source.matches){
@@ -601,7 +602,7 @@ async function autoCitation({text="", replace = false, language="english", shing
      *
      * [1] Example Domain (n.d.). Retrieved from https://example.com/"
      */
-    var sources = await match({inputText:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
+    var sources = await match({text:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
     var matches = []
     for(var i = 0; i < sources.length; i++){
         Array.prototype.push.apply(matches, sources[i].matches)
