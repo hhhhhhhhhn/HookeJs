@@ -169,10 +169,8 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumCluste
      * The returnMatches argument return the matches without any cluster done to them
      */
     var matches = [];
-    var len1 = shingles1.length;
-    var len2 = shingles2.length;
-    for(var i = 0; i < len1; i++){
-        for(var j = 0; j < len2; j++){
+    for(var i = 0; i < shingles1.length; i++){
+        for(var j = 0; j < shingles2.length; j++){
             if(arraysEqual(shingles1[i], shingles2[j])){
                 matches.push([i,j])
             };
@@ -180,9 +178,8 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumCluste
     };
     //clustering
     var clusters = [];
-    var len = matches.length;
-    for(var i = 0; i < len; i++){    // For every matching point
-        var inCluster = null;           // By default it is not in any cluster (It is null instead of false because false = 0 and 0 is a possible index)
+    for(var i = 0; i < matches.length; i++){    // For every matching point
+        var inCluster = null;           // By default it is not in any cluster (It is null instead of false because false == 0 and 0 is a possible index)
         var clustersLen = clusters.length;
         for(var j = 0; j < clustersLen; j++){ // For each existing cluster
             var currentClusterLen = clusters[j].length;
@@ -195,6 +192,7 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumCluste
                     } else if (inCluster != j){        // if it already is in a cluster and that cluster isn't the on it's in
                         clusters[inCluster] = union(clusters[inCluster], clusters[j]) // Make the cluster its in the union between both
                         clusters[j] = []                //Empty the other one (This with the last line merges both clusters)
+                        break
                     };
                 };
             };
@@ -205,8 +203,7 @@ function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumCluste
     };
     //Removing all clusters smaller than the minimum distance
     var newClusters = [];
-    var len = clusters.length;
-    for (var i = 0; i < len; i++){
+    for (var i = 0; i < clusters.length; i++){
         if (clusters[i].length >= minimumClusterSize){
             newClusters.push(clusters[i])
         };
