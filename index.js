@@ -503,12 +503,12 @@ async function matchPrint({text="",minScore=5, language="english", shingleSize =
     var sources = await match({text:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
     console.log("\n\n\nComparison")
     for(source of sources){
-        for(var match of source.matches){
-            if(match.score >= minScore){
+        for(var singleMatch of source.matches){
+            if(singleMatch.score >= minScore){
                 console.log(`\n\n\nFROM ${source.source}\n`)
-                console.log(`ORIGINAL: ${text.slice(match.inputStart, match.inputEnd)}\n\n`)
-                console.log(`COMPARED: ${source.text.slice(match.comparedStart, match.comparedEnd)}`)
-                console.log(`SCORE: ${match.score}`)
+                console.log(`ORIGINAL: ${text.slice(singleMatch.inputStart, singleMatch.inputEnd)}\n\n`)
+                console.log(`COMPARED: ${source.text.slice(match.comparedStart, singleMatch.comparedEnd)}`)
+                console.log(`SCORE: ${singleMatch.score}`)
             }
         }
     }
