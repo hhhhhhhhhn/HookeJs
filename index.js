@@ -503,7 +503,7 @@ async function matchPrint({text="",minScore=5, language="english", shingleSize =
     var sources = await match({text:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
     console.log("\n\n\nComparison")
     for(source of sources){
-        for(match of source.matches){
+        for(var match of source.matches){
             if(match.score >= minScore){
                 console.log(`\n\n\nFROM ${source.source}\n`)
                 console.log(`ORIGINAL: ${text.slice(match.inputStart, match.inputEnd)}\n\n`)
