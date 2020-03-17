@@ -507,7 +507,7 @@ async function matchPrint({text="",minScore=5, language="english", shingleSize =
             if(singleMatch.score >= minScore){
                 console.log(`\n\n\nFROM ${source.source}\n`)
                 console.log(`ORIGINAL: ${text.slice(singleMatch.inputStart, singleMatch.inputEnd)}\n\n`)
-                console.log(`COMPARED: ${source.text.slice(match.comparedStart, singleMatch.comparedEnd)}`)
+                console.log(`COMPARED: ${source.text.slice(singleMatch.comparedStart, singleMatch.comparedEnd)}`)
                 console.log(`SCORE: ${singleMatch.score}`)
             }
         }
