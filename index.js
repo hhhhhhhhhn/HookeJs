@@ -1,30 +1,34 @@
 //// Comparison section
 
-var snowball = require('node-snowball');
+var snowball = require('node-snowball')
 
 function findSpaces(text) {
     /**
-     * Takes a string as input, outputs indices of spaces in the string. Also, replaces all whitespace characters with spaces
-     * and adds spaces at the beggining and start so it can be separated more easily in the getWords function
+     * Takes a string as input, outputs indices of spaces in the string. Also, replaces all whitespace characters with 
+     * spaces and adds spaces at the beggining and start so it can be separated more easily in the getWords function
      * 
      * In: "Hello, my name is"
      * 
      * Out: [-1, 6, 9, 14, 17]
      */
-    text = text.replace("\n", " ").replace("\t", " ").replace("\r", " ").replace(".", " ")
-    var spaceIndices = [];
-    var len = text.length;
+    text = text
+        .replace("\n", " ")
+        .replace("\t", " ")
+        .replace("\r", " ")
+        .replace(".", " ")
+    var spaceIndices = []
+    var len = text.length
     for (var i = 0; i < len; i++){
         if(text.charAt(i) == " "){
-            spaceIndices.push(i);
+            spaceIndices.push(i)
         }
     }
-    spaceIndices.unshift(-1);
-    spaceIndices.push(text.length);
+    spaceIndices.unshift(-1)
+    spaceIndices.push(text.length)
     return spaceIndices
-};
+}
 
-function getWords(text, spaceIndices) {
+function getWords(text) {
     /**
      * Takes text and the output of the findSpaces function as inputs,
      * outputs list of words and list of their indices in the original string in formant [start, end]
@@ -34,18 +38,19 @@ function getWords(text, spaceIndices) {
      * Out: [   [ 'Hello,', 'my', 'name', 'is' ] ,
      * [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ]]   ]
      */
-    var words = [];
-    var indicesList = [];
-    var len = spaceIndices.length - 1; //One is substracted because the for loop uses two elements
-    for (var i = 0; i < len; i++) {
-        if (spaceIndices[i + 1] - spaceIndices[i] > 1) {    //Doesn't count two spaces in a row
-            var wordStart = spaceIndices[i] + 1, wordEnd = spaceIndices[i+1];
-            words.push(text.slice(wordStart, wordEnd));
-            indicesList.push([wordStart, wordEnd]);
-        };
-    };
+    var spaceIndices = findSpaces(text)
+    var words = []
+    var indicesList = []
+    var len = spaceIndices.length - 1                                           // One is substracted because the for
+    for (var i = 0; i < len; i++) {                                             // loop uses two elements
+        if (spaceIndices[i + 1] - spaceIndices[i] > 1) {                        // Doesn't count two spaces in a row
+            var wordStart = spaceIndices[i] + 1, wordEnd = spaceIndices[i+1]
+            words.push(text.slice(wordStart, wordEnd))
+            indicesList.push([wordStart, wordEnd])
+        }
+    }
     return [words, indicesList]
-};
+}
 
 function normalizeAndRemoveStopWords(words, indicesList, language = "english"){
     /**
@@ -56,23 +61,24 @@ function normalizeAndRemoveStopWords(words, indicesList, language = "english"){
      * Out: [ [ 'jazz' ], [ [ 20, 25 ] ] ]
      * (only jazz is not a stopword)
      */
-    var json = require('./stopwords.json');
-    var stopwords = json[language];
-    var regex = RegExp(json[language+"regex"][0], json[language+"regex"][1]); //All not allowed characters
-    var newWords = [];
-    var newIndicesList = [];
-    var len = words.length;
+    var json = require('./stopwords.json')
+    var stopwords = json[language]
+    var regex = RegExp(json[language+"regex"][0], json[language+"regex"][1])    // All non-allowed characters
+    var newWords = []
+    var newIndicesList = []
+    var len = words.length
     for (var i = 0; i < len; i++){
-        words[i] = words[i].toLowerCase().replace(regex, "");
+        words[i] = words[i].toLowerCase().replace(regex, "")
         if (!stopwords.includes(words[i])){
-            newWords.push(words[i]);
-            newIndicesList.push(indicesList[i]);
-        };
-    };
+            newWords.push(words[i])
+            newIndicesList.push(indicesList[i])
+        }
+    }
     return [newWords, newIndicesList]
-};
+}
 
-function shingleAndStemmer(words, indicesList, shingleSize = 1, language = "english"){
+function shingleAndStemmer(words, indicesList, shingleSize = 1,
+    language = "english"){
     /**
      * Stems the words (turns to root form) and optionally shingles them
      * 
@@ -85,16 +91,19 @@ function shingleAndStemmer(words, indicesList, shingleSize = 1, language = "engl
      * Out: [ [  [ 'like', 'jazz' ],[ 'jazz', 'my' ],[ 'my', 'jazzi' ],[ 'jazzi', 'feel' ] ],
      * [ [ 1, 4 ], [ 3, 6 ], [ 5, 8 ], [ 7, 10 ] ]]
      */
-    var words = snowball.stemword(words, language);
-    var shingles = [];
-    var shingledIndicesList = [];
-    var len = words.length - shingleSize + 1;
+    var words = snowball.stemword(words, language)
+    var shingles = []
+    var shingledIndicesList = []
+    var len = words.length - shingleSize + 1
     for(var i = 0; i < len; i++){
-        shingles.push(words.slice(i, i+shingleSize));
-        shingledIndicesList.push([ indicesList[i][0] , indicesList[i + shingleSize - 1][1] ])
-    };
+        shingles.push(words.slice(i, i+shingleSize))
+        shingledIndicesList.push([
+            indicesList[i][0],
+            indicesList[i + shingleSize - 1][1]
+        ])
+    }
     return [shingles, shingledIndicesList]
-};
+}
 
 function union(array1, array2){
     /**
@@ -108,10 +117,10 @@ function union(array1, array2){
     for(var i = 0; i < len; i++){
         if(!array1.includes(array2[i])){
             array1.push(array2[i])
-        };
-    };
+        }
+    }
     return array1
-};
+}
 
 function diff(array1, array2){
     /**
@@ -130,7 +139,8 @@ function diff(array1, array2){
 
 function arraysEqual(array1, array2){
     /**
-     * Auxiliary function which checks if the elements of both arrays are equal. If they are not arrays just checks if they are equal
+     * Auxiliary function which checks if the elements of both arrays are equal. If they are not arrays just checks if
+     * they are equal.
      * 
      * In: [1,2,3,4], [2,4,3,1]
      * Out: false
@@ -148,96 +158,77 @@ function arraysEqual(array1, array2){
     }
     if(array1.length != array2.length){
         return false
-    };
-    var len = array1.length;
+    }
+    var len = array1.length
     for(var i = 0; i < len; i++){
         if(array1[i] != array2[i]){
             return false
-        };
-    };
-    return true;
-};
+        }
+    }
+    return true
+}
 
-function findUnionAndCluster(shingles1, shingles2, maximumGap = 3, minimumClusterSize = 1, returnMatches = false){
+function findUnionAndCluster(shingles1, shingles2, maximumGap = 3,
+                            minimumClusterSize = 1, returnMatches = false){
     /**
      * Finds the points matching in both shingle sets, then finds the clusters in which they are close togather (a match)
      * 
      * In: [["a"],["b"],["c"],["d"]], [["x"],["c"],["d"],["y"]], 2, 1
-     * Out: [ [ [ 2, 1 ], [ 3, 2 ] ] ]    //Meaning there was one cluster, consisting of the indices 2 and 3 ("b" and "c") of the first array, and
-     *                                    //indices 1 and 2 of the second array (also "b" and "c")
+     * Out: [ [ [ 2, 1 ], [ 3, 2 ] ] ]  
+     *   
+     * Meaning there was one cluster, consisting of the indices 2 and 3 ("b" and "c") of the first array, and indices 1
+     * and 2 of the second array (also "b" and "c")
      * 
      * The returnMatches argument return the matches without any cluster done to them
      */
-    var matches = [];
+    var matches = []
     for(var i = 0; i < shingles1.length; i++){
         for(var j = 0; j < shingles2.length; j++){
             if(arraysEqual(shingles1[i], shingles2[j])){
                 matches.push([i,j])
-            };
-        };
-    };
-    //clustering
-    var clusters = [];
-    for(var i = 0; i < matches.length; i++){    // For every matching point
-        var inCluster = null;           // By default it is not in any cluster (It is null instead of false because false == 0 and 0 is a possible index)
-        var clustersLen = clusters.length;
-        for(var j = 0; j < clustersLen; j++){ // For each existing cluster
-            var currentClusterLen = clusters[j].length;
-            for(var k = 0; k < currentClusterLen; k++){ // For each point in that cluster
-                if (Math.max( Math.abs(matches[i][0] - clusters[j][k][0]), Math.abs(matches[i][1] - clusters[j][k][1]) ) <= maximumGap){
-                // if Chebyshev distance is small enough to be in the same cluster https://en.wikipedia.org/wiki/Chebyshev_distance
-                    if (inCluster == null){          // if it isn't in any cluster
-                        clusters[j].push(matches[i]);      // Add it to the cluster
-                        inCluster = j                      // Mark that it is in that cluster
-                    } else if (inCluster != j){        // if it already is in a cluster and that cluster isn't the on it's in
-                        clusters[inCluster] = union(clusters[inCluster], clusters[j]) // Make the cluster its in the union between both
-                        clusters[j] = []                //Empty the other one (This with the last line merges both clusters)
-                        break
-                    };
-                };
-            };
-        };
-        if (inCluster == null){      // If after checking in al clusters it isn't in one
-            clusters.push([matches[i]]) // Create a cluster with just itself
+            }
         }
-    };
+    }
+    //clustering
+    var clusters = []
+    for(var i = 0; i < matches.length; i++){                                    // For every matching point
+        var inCluster = null                                                    // By default it is not in any cluster
+        var clustersLen = clusters.length                                       // (false == 0 so it's not used)
+        for(var j = 0; j < clustersLen; j++){                                   // For each existing cluster
+            var currentClusterLen = clusters[j].length
+            for(var k = 0; k < currentClusterLen; k++){                         // For each point in that cluster
+                if (Math.max( Math.abs(matches[i][0] - clusters[j][k][0]),      // If Chebyshev distance is small enough
+                Math.abs(matches[i][1] - clusters[j][k][1]) ) <= maximumGap){   // to be in the same cluster 
+                    if (inCluster == null){                                       // If it isn't in any cluster
+                        clusters[j].push(matches[i])                                // Add it to the cluster
+                        inCluster = j                                               // Mark that it is in that cluster
+                    }else if(inCluster != j){                                   // Else if it already is in a cluster
+                        clusters[inCluster] = union(                            //and that cluster isn't the one it's in
+                            clusters[inCluster],                                  //Merge both clusters
+                            clusters[j]
+                        )
+                        clusters[j] = []
+                        break
+                    }
+                }
+            }
+        }
+        if (inCluster == null){                                                 // If after checking in al clusters it
+            clusters.push([matches[i]])                                         // isn't in any, create a cluster with
+        }                                                                       // just itself.
+    }
     //Removing all clusters smaller than the minimum distance
-    var newClusters = [];
+    var newClusters = []
     for (var i = 0; i < clusters.length; i++){
         if (clusters[i].length >= minimumClusterSize){
             newClusters.push(clusters[i])
-        };
-    };
+        }
+    }
     if(returnMatches){
         return [newClusters, matches]
     }
     return newClusters
-};
-
-function findClusterStartAndEndRelativeToShingles(cluster){
-    /**
-     * Gets the beggining and end of both sources of a cluster in format [[startSource1, endSource1],[startSource2, endSource2]]
-     * In: [[3,5],[4,5],[2,7]]
-     * Out: [ [ 2, 4 ], [ 5, 7 ] ]
-     */
-    var len = cluster.length;
-    var startSource1, endSource1, startSource2, endSource2;
-    startSource1 = endSource1 = cluster[0][0];
-    startSource2 = endSource2 = cluster[0][1];
-    for(var i = 1; i < len; i++){
-        if(cluster[i][0] < startSource1){
-            startSource1 = cluster[i][0]
-        }else if(cluster[i][0] > endSource1){
-            endSource1 = cluster[i][0]
-        };
-        if(cluster[i][1] < startSource2){
-            startSource2 = cluster[i][1]
-        }else if(cluster[i][1] > endSource2){
-            endSource2 = cluster[i][1]
-        };
-    };
-    return [[startSource1, endSource1],[startSource2, endSource2]]
-};
+}
 
 function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList){
     /**
@@ -245,21 +236,21 @@ function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList){
      * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
      * Out: [1, 9]
      */
-    return [shingledIndicesList[shingleStart][0], shingledIndicesList[shingleEnd][1]]
-};
+    return [shingledIndicesList[shingleStart][0],
+            shingledIndicesList[shingleEnd][1]]
+}
 
 //// Search section
 
-const {google} = require('googleapis');
-const customsearch = google.customsearch('v1');
-const axios = require("axios");
+const {google} = require('googleapis')
+const customsearch = google.customsearch('v1')
+const axios = require("axios")
 const cheerio = require("cheerio")
 
 function includesSubstringFromArray(string, array){
-    /** Checks if a list contains a substring of the given string
+    /** Checks if any element in a list contains a substring of the given string
      * 
      * In: "hello there", ["xyz", "thi", "re"]
-     * 
      * Out: true
      */
     for(var substring of array){
@@ -273,7 +264,8 @@ function html2text(htmlCode){
     /**
      * Auxiliary function to convert html to plain text
      * 
-     * Modified from EpokK @ https://stackoverflow.com/questions/15180173/convert-html-to-plain-text-in-js-without-browser-environment/15180206
+     * Modified from EpokK @
+     *https://stackoverflow.com/questions/15180173/convert-html-to-plain-text-in-js-without-browser-environment/15180206
      * 
      * In: "<html><head><title>Example Domain</title>..."
      * 
@@ -287,9 +279,9 @@ function html2text(htmlCode){
      *More information...
      */
     htmlCode = String(htmlCode)
-    htmlCode = htmlCode.replace(/<style([\s\S]*?)<\/style>/gi, '');
-    htmlCode = htmlCode.replace(/<script([\s\S]*?)<\/script>/gi, '');
-    htmlCode = htmlCode.replace(/<[^>]+>/ig, ' ');
+        .replace(/<style([\s\S]*?)<\/style>/gi, '')
+        .replace(/<script([\s\S]*?)<\/script>/gi, '')
+        .replace(/<[^>]+>/ig, ' ')
     return htmlCode
 }
 
@@ -300,7 +292,7 @@ function getTitle(html){
      * 
      * Out: HookeJs/index.js at master · oekshido/HookeJs
      */
-    if(typeof html != typeof "string"){
+    if(typeof html != "string"){
         return ""
     }
     a = RegExp("title(.*?)/title","i")
@@ -316,29 +308,31 @@ async function singleSearchScrape(query){
     /**Searches the given query scraping google
      * 
      * In: "Jazz"
-     * 
      * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
      */
-    headers = {
+    var headers = {
         "accept":"*/*",
         "accept-encoding": "identity;q=1, *;q=0",
         "accept-language": "en,es-CL;q=0.9,es;q=0.8",
         "range": "bytes=0-",
         "sec-fetch-site": "cross-site",
-        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Mobile Safari/537.36"
+        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
+        + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Mobile "
+        + "Safari/537.36"
     }
-    ignore = [
+    var ignore = [
         "google.com/preferences",
         "accounts.google"
     ]
-    url = new URL("https://www.google.com/search")
+    var url = new URL("https://www.google.com/search")
     url.searchParams.append("q", query)
     response = await axios.get(url.href, {timeout: 60000})
     $ = cheerio.load(response.data)
     urls = []
     $('a').each( function () {
         var link = $(this).attr('href')
-        if(link.slice(0,7) == "/url?q=" && !includesSubstringFromArray(link, ignore)){
+        if(link.slice(0,7) == "/url?q=" &&
+        !includesSubstringFromArray(link, ignore)){
             urls.push(link.slice(7).split("&")[0])
         }
      })
@@ -352,7 +346,9 @@ async function singleSearchApi(query, apikey, engineid){
      * 
      * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
      */
-    var response = await customsearch.cse.list({cx: engineid, q: query, auth: apikey})
+    var response = await customsearch.cse.list({
+        cx: engineid, q: query, auth: apikey
+    })
     if (response.data != undefined && response.data.items != undefined){
         var urls = []
         for(item of response.data.items){
@@ -365,37 +361,38 @@ async function singleSearchApi(query, apikey, engineid){
     }
 }
 
-async function downloadWebsites(urls, justText = true){
+async function downloadWebsites(urls, justText = true, verbose = false){
     /**
      * Downloads text of the urls given, or returns html if justText is false.
      * 
      * In: ["http://example.com/", ...]
      * Out: ["Example Domain\n ...", ...]
      */
-    var requests = [];
+    var catchFunction = verbose ? console.log : ()=>{}
+    var requests = []
     for(var i = 0; i < urls.length; i++){
-        requests.push(axios.get(urls[i], {timeout:60000}).catch(console.log))
-    };
-    var responses = await Promise.all(requests).catch(console.log);
-    var htmls = [];
+        requests.push(axios.get(urls[i], {timeout:60000}).catch(catchFunction))
+    }
+    var responses = await Promise.all(requests).catch(catchFunction)
+    var htmls = []
 
     for(var i = 0; i < responses.length; i++){
         if(responses[i] != undefined){
             htmls.push(responses[i].data)
         }else{
             htmls.push("")
-        };
-    };
+        }
+    }
     if(!justText){
         return htmls
-    };
+    }
     var texts = []
     var titles = []
 
     for(var i = 0; i < htmls.length; i++){
         texts.push(html2text(htmls[i]))
         titles.push(getTitle(htmls[i]))
-    };
+    }
     return [texts, titles]
 }
 
@@ -403,13 +400,14 @@ async function downloadWebsites(urls, justText = true){
 
 class Source{
     /**
-     * Class which represents a source, with the variable being source(its url), matches(array of class Match), and the text
+     * Class which represents a source, with the variable being source(its url), matches(array of class Match),
+     * and the text
      */
     constructor(source, matches, text, title){
-        this.source = source;
-        this.matches = matches;
-        this.text = text;
-        this.title = title;
+        this.source = source
+        this.matches = matches
+        this.text = text
+        this.title = title
     }
 }
 
@@ -418,20 +416,50 @@ class Match{
      * Represents a specific cluster, with extra funcionality
      */
     constructor(cluster, source, sourceTitle){
-        this.cluster = cluster;
-        this.source = source;
-        this.sourceTitle = sourceTitle;
+        this.cluster = cluster
+        this.source = source
+        this.sourceTitle = sourceTitle
     }
+
     contextualize(inputShingledIndicesList, comparedShingledIndicesList){
         /**
-         * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared divided by the end minus start
-         * of the cluster, or the length times density, or zero if it is len zero
+         * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared
+         * divided by the end minus start of the cluster, or the length times density, or zero if it is len zero
          */
-        [[this.inputShingleStart, this.inputShingleEnd],[this.comparedShingleStart, this.comparedShingleEnd]] = findClusterStartAndEndRelativeToShingles(this.cluster);
-        [this.inputStart, this.inputEnd] = findClusterStartAndEnd(this.inputShingleStart, this.inputShingleEnd, inputShingledIndicesList);
-        [this.comparedStart, this.comparedEnd] = findClusterStartAndEnd(this.comparedShingleStart, this.comparedShingleEnd, comparedShingledIndicesList);
-        this.score = ((this.inputShingleEnd - this.inputShingleStart) > 1) ? (this.cluster.length * this.cluster.length) / (this.inputShingleEnd - this.inputShingleStart) : 0;
+        var len = this.cluster.length
+        this.inputShingleStart = this.inputShingleEnd = this.cluster[0][0]
+        this.comparedShingleStart = this.comparedShingleEnd = this.cluster[0][1]
+        for(var i = 1; i < len; i++){
+            if(this.cluster[i][0] < this.inputShingleStart){
+                this.inputShingleStart = this.cluster[i][0]
+            }else if(this.cluster[i][0] > this.inputShingleEnd){
+                this.inputShingleEnd = this.cluster[i][0]
+            }
+            if(this.cluster[i][1] < this.comparedShingleStart){
+                this.comparedShingleStart = this.cluster[i][1]
+            }else if(this.cluster[i][1] > this.comparedShingleEnd){
+                this.comparedShingleEnd = this.cluster[i][1]
+            }
+        }
+
+        [this.inputStart, this.inputEnd] = findClusterStartAndEnd(
+            this.inputShingleStart,
+            this.inputShingleEnd,
+            inputShingledIndicesList);
+
+        [this.comparedStart, this.comparedEnd] = findClusterStartAndEnd(
+            this.comparedShingleStart,
+            this.comparedShingleEnd,
+            comparedShingledIndicesList)
+
+        if((this.inputShingleEnd - this.inputShingleStart) > 1){
+            this.score = (this.cluster.length * this.cluster.length) / 
+                         (this.inputShingleEnd - this.inputShingleStart)
+        }else{
+            this.score = 0
+        }
     }
+
     findNearestPeriod(periodIndices, margin = 5){
         /**
          * Returns given the period indices the nearest period after it
@@ -444,20 +472,29 @@ class Match{
     }
 }
 
-async function match({text="", language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}={}){
+async function match({text="", language="english", shingleSize = 2,
+                      apikey=process.env.G_API_KEY,
+                      engineid=process.env.G_ENGINE_ID, maximumGap=3,
+                      minimumClusterSize=5, verbose=false}={}){
     /**
      * Takes th input text and searches the internet for similar texts, and finds matches between them.
-     * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information..."
-     * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."}, ...]
+     * 
+     * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in " + 
+     * "literature without prior coordination or asking for permission. More information..."
+     * 
+     * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."},
+     *  ...]
      */
     var inputText = text
     var sources = []
 
-    var [inputWords, inputIndicesList] = getWords(inputText, findSpaces(inputText));
-    var [inputWords, inputIndicesList] = normalizeAndRemoveStopWords(inputWords, inputIndicesList, language="english");
-    var [inputShingles, inputShingledIndicesList] = shingleAndStemmer(inputWords, inputIndicesList, shingleSize, language);
+    var [inputWords, inputIndicesList] = getWords(inputText)
+    var [inputWords, inputIndicesList] = normalizeAndRemoveStopWords(
+        inputWords, inputIndicesList, language="english")
+    var [inputShingles, inputShingledIndicesList] = shingleAndStemmer(
+        inputWords, inputIndicesList, shingleSize, language)
 
-    var limit = 32  //32 word limit on google search
+    var limit = 32                                                              //32 word limit on google search
     var len = Math.ceil(inputWords.length/limit)
     var searchQueries = []
     for(var i = 0; i < len; i++){
@@ -468,7 +505,7 @@ async function match({text="", language="english", shingleSize = 2, apikey=proce
     for(var query of searchQueries){
         if(apikey && engineid){
             try {
-                var comparedUrls = await singleSearchApi(query, apikey, engineid)
+                var comparedUrls = await singleSearchApi(query, apikey,engineid)
             } catch {
                 var comparedUrls = await singleSearchScrape(query)
             }
@@ -479,35 +516,70 @@ async function match({text="", language="english", shingleSize = 2, apikey=proce
         comparedUrls = diff(comparedUrls, usedUrls)
         usedUrls = union(usedUrls, comparedUrls)
 
-        var [comparedTexts, comparedTitles] = await downloadWebsites(comparedUrls, true).catch(console.log);
+        var [comparedTexts, comparedTitles] = await downloadWebsites(
+            comparedUrls, true, verbose).catch(console.log)
         for(var i = 0; i < comparedTexts.length; i++){
-            var [comparedWordsTemp, comparedIndicesListTemp] = getWords(comparedTexts[i], findSpaces(comparedTexts[i]));
-            var [comparedWordsTemp, comparedIndicesListTemp] = normalizeAndRemoveStopWords(comparedWordsTemp, comparedIndicesListTemp, language);
-            var [comparedShinglesTemp, comparedShingledIndicesListTemp] = shingleAndStemmer(comparedWordsTemp, comparedIndicesListTemp, shingleSize, language);
-            var comparedClustersTemp = findUnionAndCluster(inputShingles, comparedShinglesTemp, maximumGap ,minimumClusterSize);
-            var matchesTemp = [];
+            var [comparedWordsTemp, comparedIndicesListTemp] = getWords(
+                comparedTexts[i]
+            )
+
+            var [comparedWordsTemp, comparedIndicesListTemp] = 
+                normalizeAndRemoveStopWords(
+                    comparedWordsTemp, comparedIndicesListTemp, language
+                )
+
+            var [comparedShinglesTemp, comparedShingledIndicesListTemp] = 
+                shingleAndStemmer(
+                    comparedWordsTemp, comparedIndicesListTemp,
+                    shingleSize, language
+                )
+
+            var comparedClustersTemp = findUnionAndCluster(
+                inputShingles, comparedShinglesTemp,
+                maximumGap, minimumClusterSize
+            )
+
+            var matchesTemp = []
             for(var j = 0; j < comparedClustersTemp.length; j++){
-                matchesTemp.push(new Match(comparedClustersTemp[j], comparedUrls[i], comparedTitles[i]));
-                matchesTemp[j].contextualize(inputShingledIndicesList, comparedShingledIndicesListTemp)
+                matchesTemp.push(new Match(
+                    comparedClustersTemp[j], comparedUrls[i], comparedTitles[i]
+                ))
+                matchesTemp[j].contextualize(
+                    inputShingledIndicesList, comparedShingledIndicesListTemp
+                )
             }
-            sources.push(new Source(comparedUrls[i], matchesTemp, comparedTexts[i], comparedTitles[i]))
+
+            sources.push(new Source(
+                comparedUrls[i], matchesTemp, comparedTexts[i],
+                comparedTitles[i]
+            ))
         }
     }
     return sources
 }
 
-async function matchPrint({text="",minScore=5, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5}={}){
+async function matchPrint({text="",minScore=5, language="english",
+                           shingleSize = 2, apikey=process.env.G_API_KEY,
+                           engineid=process.env.G_ENGINE_ID, maximumGap=3,
+                           minimumClusterSize=5}={}){
     /**
-     * Runs thr match function and prints it
+     * Runs the match function and prints it
      */
-    var sources = await match({text:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
+    var sources = await match({text:text, language:language,
+        shingleSize:shingleSize, apiKey:apikey, engineid:engineid,
+        maximumGap:maximumGap, minimumClusterSize:minimumClusterSize
+    }).catch(console.log);
     console.log("\n\n\nComparison")
     for(source of sources){
         for(var singleMatch of source.matches){
             if(singleMatch.score >= minScore){
                 console.log(`\n\n\nFROM ${source.source}\n`)
-                console.log(`ORIGINAL: ${text.slice(singleMatch.inputStart, singleMatch.inputEnd)}\n\n`)
-                console.log(`COMPARED: ${source.text.slice(singleMatch.comparedStart, singleMatch.comparedEnd)}`)
+                console.log(`ORIGINAL: ${text.slice(
+                    singleMatch.inputStart, singleMatch.inputEnd
+                )}\n\n`)
+                console.log(`COMPARED: ${source.text.slice(
+                    singleMatch.comparedStart, singleMatch.comparedEnd
+                )}`)
                 console.log(`SCORE: ${singleMatch.score}`)
             }
         }
@@ -525,8 +597,11 @@ function findIntervalUnionPercent(start1, end1, start2, end2){
     if(start2 > end1 || start1 > end2){
         return 0
     }else{
-        return (Math.min(end1, end2) - Math.max(start1, start2)) / Math.min(end1 - start1, end2 -  start2)
-    };
+        return (
+            (Math.min(end1, end2) - Math.max(start1, start2)) / 
+            Math.min(end1 - start1, end2 -  start2)
+        )
+    }
 }
 
 function findCharacterInText(text, character, setLastCharacter = true){
@@ -546,10 +621,10 @@ function findCharacterInText(text, character, setLastCharacter = true){
         if(text.charAt(i) == character){
             indices.push(i)
         }
-    };
+    }
     if(setLastCharacter){
         indices.push(text.length)
-    };
+    }
     return indices
 }
 
@@ -566,7 +641,8 @@ function findUniqueSubstring(text, replacementIndex, minimumSize = 10){
      * Out: "zbc"
     */
     while(minimumSize < replacementIndex){
-        if (isSubstringUnique(text, text.slice(replacementIndex - minimumSize, replacementIndex))){     //If slice is unique
+        if (isSubstringUnique(text, text.slice(replacementIndex - minimumSize,
+        replacementIndex))){                                                    //If slice is unique
             return text.slice(replacementIndex - minimumSize, replacementIndex)
         }
         minimumSize++
@@ -574,11 +650,17 @@ function findUniqueSubstring(text, replacementIndex, minimumSize = 10){
     return text.slice(0, replacementIndex)
 }
 
-async function autoCitation({text="", replace = false, language="english", shingleSize = 2, apikey=process.env.G_API_KEY, engineid=process.env.G_ENGINE_ID, maximumGap=3, minimumClusterSize=5, percentToMerge = 0.6}={}){
+async function autoCitation({text="", replace = false, language="english",
+                             shingleSize = 2, apikey=process.env.G_API_KEY,
+                             engineid=process.env.G_ENGINE_ID, maximumGap=3,
+                             minimumClusterSize=5, percentToMerge = 0.6,
+                             verbose=false}={}){
     /**
      * Uses previous functions to automatically generate texts to be replaced and a bibliography based on the internet
      * 
-     * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information. Hello there, this is not part of the match"
+     * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in" + 
+     * "literature without prior coordination or asking for permission. More information. Hello there, this is not " +
+     * "part of the match"
      * 
      * Out: [
      * [ [ 'nformation', 'nformation[1]' ] ],
@@ -590,16 +672,23 @@ async function autoCitation({text="", replace = false, language="english", shing
      *      '[1] Example Domain (n.d.). Retrieved from https://example.com/\n'
      *  ]
      * 
-     * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. Hello there, this is not part of the match", true
+     * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in " + 
+     * "literature without prior coordination or asking for permission. Hello there, this is not part of the match",true
      * 
-     * Out: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission[1]. Hello there, this is not part of the match
+     * Out: `Example Domain This domain is for use in illustrative examples in documents. You may use this domain in
+     * literature without prior coordination or asking for permission[1]. Hello there, this is not part of the match
      *
      *
      * Bibliography
      *
-     * [1] Example Domain (n.d.). Retrieved from https://example.com/"
+     * [1] Example Domain (n.d.). Retrieved from https://example.com/"`
      */
-    var sources = await match({text:text, language:language, shingleSize:shingleSize, apiKey:apikey, engineid:engineid, maximumGap:maximumGap, minimumClusterSize:minimumClusterSize}).catch(console.log);
+    var sources = await match({
+        text:text, language:language, shingleSize:shingleSize, apiKey:apikey,
+        engineid:engineid, maximumGap:maximumGap,
+        minimumClusterSize:minimumClusterSize, verbose:verbose
+    }).catch(console.log)
+
     var matches = []
     for(var i = 0; i < sources.length; i++){
         Array.prototype.push.apply(matches, sources[i].matches)
@@ -607,12 +696,14 @@ async function autoCitation({text="", replace = false, language="english", shing
     var finalMatches = []
     for(var i = 0; i < matches.length; i++){
         if(matches[i].score < 1){
-            willBeOnFinal = false;
+            willBeOnFinal = false
             continue
         }
-        var willBeOnFinal = true;
+        var willBeOnFinal = true
         for(var j = 0; j < matches.length; j++){
-            if (findIntervalUnionPercent(matches[i].inputShingleStart, matches[i].inputShingleEnd, matches[j].inputShingleStart, matches[j].inputShingleEnd) >= percentToMerge){
+            if(findIntervalUnionPercent(matches[i].inputShingleStart,
+            matches[i].inputShingleEnd, matches[j].inputShingleStart,
+            matches[j].inputShingleEnd) >= percentToMerge){
                 if(matches[i].score < matches[j].score && i!=j){
                     willBeOnFinal = false
                 }else if(matches[i].score == matches[j].score && i!=j){
@@ -635,10 +726,12 @@ async function autoCitation({text="", replace = false, language="english", shing
         var replacement = findUniqueSubstring(text, matchPeriodIndex)
         if(!usedUrls.includes(finalMatches.source)){
             replacements[replacement] = replacement + `[${usedUrls.length}]`
-            bibliography += `[${usedUrls.length}] ${finalMatches[i].sourceTitle} (n.d.). Retrieved from ${finalMatches[i].source}\n`
+            bibliography += `[${usedUrls.length}] ${finalMatches[i].sourceTitle
+            } (n.d.). Retrieved from ${finalMatches[i].source}\n`
             usedUrls.push(finalMatches[i].source)
         }else{
-            replacements[replacement] = replacement + `[${usedUrls.indexOf(finalMatches[i].length)}]`
+            replacements[replacement] = replacement + 
+                `[${usedUrls.indexOf(finalMatches[i].length)}]`
         }
     }
     if(!replace){
@@ -648,6 +741,6 @@ async function autoCitation({text="", replace = false, language="english", shing
         text = text.replace(replacedText, replacement)
     }
     return text + bibliography
-};
+}
 
 module.exports = {match, autoCitation, matchPrint}
