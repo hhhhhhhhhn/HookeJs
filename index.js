@@ -558,8 +558,8 @@ async function match({text="", language="english", shingleSize = 2,
     return sources
 }
 
-async function matchPrint({text="",minScore=5, language="english",
-                           shingleSize = 2, apikey=process.env.G_API_KEY,
+async function matchPrint({text="", minScore=5, language="english",
+                           shingleSize=2, apikey=process.env.G_API_KEY,
                            engineid=process.env.G_ENGINE_ID, maximumGap=3,
                            minimumClusterSize=5}={}){
     /**
@@ -573,13 +573,13 @@ async function matchPrint({text="",minScore=5, language="english",
     for(source of sources){
         for(var singleMatch of source.matches){
             if(singleMatch.score >= minScore){
-                console.log(`\n\n\nFROM ${source.source}\n`)
+                console.log(`\n\n\nFROM ${source.source}\n\n`)
                 console.log(`ORIGINAL: ${text.slice(
                     singleMatch.inputStart, singleMatch.inputEnd
                 )}\n\n`)
                 console.log(`COMPARED: ${source.text.slice(
                     singleMatch.comparedStart, singleMatch.comparedEnd
-                )}`)
+                )}\n\n`)
                 console.log(`SCORE: ${singleMatch.score}`)
             }
         }
