@@ -4,7 +4,8 @@
   "description": "An open source plagiarism detector and autocitation built in node.",
   "main": "index.js",
   "scripts": {
-    "test": "node test"
+    "test": "node test",
+    "build": "nexe cli.js hooke.exe"
   },
   "repository": {
     "type": "git",
