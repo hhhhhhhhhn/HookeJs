@@ -1,5 +1,6 @@
 .vscode/
 *.exe
+dist/
 
 # Logs
 logs

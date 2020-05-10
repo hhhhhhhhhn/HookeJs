@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node test",
-    "build": "nexe cli.js hooke.exe"
+    "build": "nexe cli.js -o dist/hooke.exe --fake-argv"
   },
   "repository": {
     "type": "git",
