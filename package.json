@@ -1,32 +1,34 @@
 {
-  "name": "hookejs",
-  "version": "1.3.0",
-  "description": "An open source plagiarism detector and autocitation built in node.",
-  "main": "index.js",
-  "scripts": {
-    "test": "node test",
-    "build": "npx nexe cli.js -o dist/hooke --fake-arg"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/oekshido/HookeJs.git"
-  },
-  "author": "oekshido",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/oekshido/HookeJs/issues"
-  },
-  "homepage": "https://github.com/oekshido/HookeJs#readme",
-  "dependencies": {
-    "axios": "^0.19.2",
-    "cheerio": "^1.0.0-rc.3",
-    "googleapis": "^47.0.0",
-    "node-snowball": "^0.4.0"
-  },
-  "devDependencies": {
-    "itworksjs": "^1.1.1"
-  },
-  "bin": {
-    "hooke": "./cli.js"
-  }
+	"name": "hookejs",
+	"version": "1.3.0",
+	"description": "An open source plagiarism detector and autocitation built in node.",
+	"main": "index.js",
+	"scripts": {
+		"test": "node test",
+		"build": "npx nexe cli.js -o dist/hooke --fake-arg",
+		"format": "npx prettier --write **/*.{js,json,yml,md}"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/oekshido/HookeJs.git"
+	},
+	"author": "oekshido",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/oekshido/HookeJs/issues"
+	},
+	"homepage": "https://github.com/oekshido/HookeJs#readme",
+	"dependencies": {
+		"axios": "^0.19.2",
+		"cheerio": "^1.0.0-rc.3",
+		"googleapis": "^47.0.0",
+		"node-snowball": "^0.4.0"
+	},
+	"devDependencies": {
+		"itworksjs": "^1.1.1",
+		"prettier": "^2.0.5"
+	},
+	"bin": {
+		"hooke": "./cli.js"
+	}
 }
