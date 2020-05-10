@@ -1,4 +1,5 @@
 .vscode/
+*.exe
 
 # Logs
 logs
