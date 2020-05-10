@@ -320,8 +320,8 @@ function getTitle(html) {
 	if (typeof html != "string") {
 		return ""
 	}
-	a = RegExp("title(.*?)/title", "i")
-	b = RegExp(">(.*?)<", "i")
+	var a = RegExp("title(.*?)/title", "i")
+	var b = RegExp(">(.*?)<", "i")
 	try {
 		return html.match(a)[0].match(b)[0].slice(1, -1)
 	} catch {
@@ -349,9 +349,9 @@ async function singleSearchScrape(query) {
 	var ignore = ["google.com/preferences", "accounts.google"]
 	var url = new URL("https://www.google.com/search")
 	url.searchParams.append("q", query)
-	response = await axios.get(url.href, {timeout: 60000})
+	var response = await axios.get(url.href, {timeout: 60000})
 	$ = cheerio.load(response.data)
-	urls = []
+	var urls = []
 	$("a").each(function () {
 		var link = $(this).attr("href")
 		if (
