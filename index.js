@@ -1,6 +1,6 @@
 //// Comparison section
 
-var snowball = require("node-snowball")
+const snowball = require("node-snowball")
 
 function findSpaces(text) {
 	/**
@@ -30,8 +30,8 @@ function findSpaces(text) {
 
 function getWords(text) {
 	/**
-	 * Takes text and the output of the findSpaces function as inputs,
-	 * outputs list of words and list of their indices in the original string in formant [start, end]
+	 * Takes text and the output of the findSpaces function as inputs, outputs list of words and list of their indices
+	 * in the original string in formant [start, end]
 	 *
 	 * In: "Hello, my name is", [-1, 6, 9, 14, 17]
 	 *
@@ -183,7 +183,8 @@ function findUnionAndCluster(
 	returnMatches = false
 ) {
 	/**
-	 * Finds the points matching in both shingle sets, then finds the clusters in which they are close togather (a match)
+	 * Finds the points matching in both shingle sets, then finds the clusters in which they are close together
+	 * (a match)
 	 *
 	 * In: [["a"],["b"],["c"],["d"]], [["x"],["c"],["d"],["y"]], 2, 1
 	 * Out: [ [ [ 2, 1 ], [ 3, 2 ] ] ]
@@ -257,6 +258,7 @@ function findUnionAndCluster(
 function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList) {
 	/**
 	 * Returns the indices of matches based on the original text.
+	 *
 	 * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
 	 * Out: [1, 9]
 	 */
@@ -274,7 +276,8 @@ const axios = require("axios")
 const cheerio = require("cheerio")
 
 function includesSubstringFromArray(string, array) {
-	/** Checks if any element in a list contains a substring of the given string
+	/**
+	 * Checks if any element in a list contains a substring of the given string
 	 *
 	 * In: "hello there", ["xyz", "thi", "re"]
 	 * Out: true
@@ -311,7 +314,8 @@ function html2text(htmlCode) {
 }
 
 function getTitle(html) {
-	/** Gets contents inside title tag in html.
+	/**
+	 * Gets contents inside title tag in html.
 	 *
 	 * In: "<head> ... <title >HookeJs/index.js at master · oekshido/HookeJs</title> ... "
 	 *
@@ -330,7 +334,8 @@ function getTitle(html) {
 }
 
 async function singleSearchScrape(query) {
-	/**Searches the given query scraping google
+	/**
+	 * Searches the given query scraping google
 	 *
 	 * In: "Jazz"
 	 * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
@@ -343,8 +348,8 @@ async function singleSearchScrape(query) {
 		"sec-fetch-site": "cross-site",
 		"user-agent":
 			"Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) " +
-			"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Mobile " +
-			"Safari/537.36"
+			"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 " +
+			"Mobile Safari/537.36"
 	}
 	var ignore = ["google.com/preferences", "accounts.google"]
 	var url = new URL("https://www.google.com/search")
@@ -365,7 +370,8 @@ async function singleSearchScrape(query) {
 }
 
 async function singleSearchApi(query, apikey, engineid) {
-	/**Searches the given query using the custom search engine api
+	/**
+	 * Searches the given query using the custom search engine api
 	 *
 	 * In: "Jazz"
 	 *
@@ -426,8 +432,8 @@ async function downloadWebsites(urls, justText = true, verbose = false) {
 
 class Source {
 	/**
-	 * Class which represents a source, with the variable being source(its url), matches(array of class Match),
-	 * and the text
+	 * Class which represents a source, with the variable being source(its url), matches(array of class Match), and the
+	 * text
 	 */
 	constructor(source, matches, text, title) {
 		this.source = source
@@ -829,16 +835,18 @@ async function autoCitation({
 	var bibliography = "\n\n\nBibliography\n\n"
 	var replacements = {}
 	var usedUrls = ["placeholder because people don't count from 0"]
-	for (var i = 0; i < finalMatches.length; i++) {
-		var matchPeriodIndex = finalMatches[i].findNearestPeriod(periodIndices)
+	for (var fMatch of finalMatches) {
+		var matchPeriodIndex = fMatch.findNearestPeriod(periodIndices)
 		var replacement = findUniqueSubstring(text, matchPeriodIndex)
 		if (!usedUrls.includes(finalMatches.source)) {
 			replacements[replacement] = replacement + `[${usedUrls.length}]`
-			bibliography += `[${usedUrls.length}] ${finalMatches[i].sourceTitle} (n.d.). Retrieved from ${finalMatches[i].source}\n`
-			usedUrls.push(finalMatches[i].source)
+			bibliography +=
+				`[${usedUrls.length}] ${fMatch.sourceTitle} (n.d.). Retrieved` +
+				` from ${fMatch.source}\n`
+			usedUrls.push(fMatch.source)
 		} else {
 			replacements[replacement] =
-				replacement + `[${usedUrls.indexOf(finalMatches[i].length)}]`
+				replacement + `[${usedUrls.indexOf(fMatch.length)}]`
 		}
 	}
 	if (!replace) {
