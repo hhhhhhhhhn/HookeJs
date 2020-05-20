@@ -273,7 +273,6 @@ function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList) {
 const {google} = require("googleapis")
 const customsearch = google.customsearch("v1")
 const axios = require("axios")
-const cheerio = require("cheerio")
 
 function includesSubstringFromArray(string, array) {
 	/**
@@ -355,17 +354,20 @@ async function singleSearchScrape(query) {
 	var url = new URL("https://www.google.com/search")
 	url.searchParams.append("q", query)
 	var response = await axios.get(url.href, {timeout: 60000})
-	$ = cheerio.load(response.data)
+	var anchorTags = response.data.match(/<a[\s]+([^>]+)>/gi)
 	var urls = []
-	$("a").each(function () {
-		var link = $(this).attr("href")
+	for (var tag of anchorTags) {
+		var link = tag.match(/".*?"/)[0]
+		var start = link.slice(1, 8)
+		link = link.slice(8, -1).split("&")[0]
 		if (
-			link.slice(0, 7) == "/url?q=" &&
-			!includesSubstringFromArray(link, ignore)
+			start == "/url?q=" &&
+			!includesSubstringFromArray(link, ignore) &&
+			!urls.includes(link)
 		) {
-			urls.push(link.slice(7).split("&")[0])
+			urls.push(link)
 		}
-	})
+	}
 	return urls
 }
 
