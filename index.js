@@ -1,6 +1,7 @@
-//// Comparison section
-
 const snowball = require("node-snowball")
+const axios = require("axios")
+
+//// Comparison section
 
 function findSpaces(text) {
 	/**
@@ -270,10 +271,6 @@ function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList) {
 
 //// Search section
 
-const {google} = require("googleapis")
-const customsearch = google.customsearch("v1")
-const axios = require("axios")
-
 function includesSubstringFromArray(string, array) {
 	/**
 	 * Checks if any element in a list contains a substring of the given string
@@ -339,17 +336,6 @@ async function singleSearchScrape(query) {
 	 * In: "Jazz"
 	 * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
 	 */
-	var headers = {
-		accept: "*/*",
-		"accept-encoding": "identity;q=1, *;q=0",
-		"accept-language": "en,es-CL;q=0.9,es;q=0.8",
-		range: "bytes=0-",
-		"sec-fetch-site": "cross-site",
-		"user-agent":
-			"Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) " +
-			"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 " +
-			"Mobile Safari/537.36"
-	}
 	var ignore = ["google.com/preferences", "accounts.google"]
 	var url = new URL("https://www.google.com/search")
 	url.searchParams.append("q", query)
@@ -379,11 +365,11 @@ async function singleSearchApi(query, apikey, engineid) {
 	 *
 	 * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
 	 */
-	var response = await customsearch.cse.list({
-		cx: engineid,
-		q: query,
-		auth: apikey
-	})
+	var url = new URL("https://www.googleapis.com/customsearch/v1")
+	url.searchParams.append("q", query)
+	url.searchParams.append("key", apikey)
+	url.searchParams.append("cx", engineid)
+	var response = await axios.get(url.href, {timeout: 60000})
 	if (response.data != undefined && response.data.items != undefined) {
 		var urls = []
 		for (item of response.data.items) {
