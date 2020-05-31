@@ -1,6 +1,6 @@
 {
 	"name": "hookejs",
-	"version": "1.3.1",
+	"version": "1.3.2",
 	"description": "An open source plagiarism detector and autocitation built in node.",
 	"main": "index.js",
 	"scripts": {
@@ -19,9 +19,10 @@
 	"homepage": "https://github.com/oekshido/HookeJs#readme",
 	"dependencies": {
 		"axios": "^0.19.2",
-		"node-snowball": "^0.4.0"
+		"snowball-stemmers": "^0.6.0"
 	},
 	"devDependencies": {
+		"browserify": "^16.5.1",
 		"itworksjs": "^1.1.1",
 		"prettier": "^2.0.5"
 	},

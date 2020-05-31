@@ -1,5 +1,6 @@
 const {it, works, functions} = require("itworksjs")
 const hooke = require(".")
+const snowball = require("snowball-stemmers")
 
 var {
 	shingleAndStemmer,
@@ -20,7 +21,8 @@ it("should remove stopwords and normalize", () => {
 			[10, 14],
 			[15, 17],
 			[20, 25]
-		]
+		],
+		"english"
 	)
 	if (words.length != 1 || words[0] != "jazz") {
 		throw new Error("Unable to remove stopwords")
@@ -31,6 +33,7 @@ it("should remove stopwords and normalize", () => {
 })
 
 it("should stem and shingle", () => {
+	const stemmer = snowball.newStemmer("english")
 	var [shingles, shingleIndicesList] = shingleAndStemmer(
 		["like", "jazz", "my", "jazzy", "feeling"],
 		[
@@ -41,7 +44,7 @@ it("should stem and shingle", () => {
 			[9, 10]
 		],
 		2,
-		"english"
+		stemmer
 	)
 	if (shingles.length != 4) {
 		throw new Error("Wrong shingle amount")
@@ -55,6 +58,7 @@ it("should stem and shingle", () => {
 })
 
 it("should stem and shingle in spanish", () => {
+	const stemmer = snowball.newStemmer("spanish")
 	var [shingles, shingleIndicesList] = shingleAndStemmer(
 		["hola", "camine", "caerse"],
 		[
@@ -63,7 +67,7 @@ it("should stem and shingle in spanish", () => {
 			[2, 2]
 		],
 		2,
-		"spanish"
+		stemmer
 	)
 	if (shingles.length != 2) {
 		throw new Error("Wrong shingle amount")

@@ -1,4 +1,4 @@
-const snowball = require("node-snowball")
+const snowball = require("snowball-stemmers")
 const axios = require("axios")
 
 //// Comparison section
@@ -81,12 +81,7 @@ function normalizeAndRemoveStopWords(words, indicesList, language = "english") {
 	return [newWords, newIndicesList]
 }
 
-function shingleAndStemmer(
-	words,
-	indicesList,
-	shingleSize = 1,
-	language = "english"
-) {
+function shingleAndStemmer(words, indicesList, shingleSize, stemmer) {
 	/**
 	 * Stems the words (turns to root form) and optionally shingles them
 	 *
@@ -99,7 +94,7 @@ function shingleAndStemmer(
 	 * Out: [ [  [ 'like', 'jazz' ],[ 'jazz', 'my' ],[ 'my', 'jazzi' ],[ 'jazzi', 'feel' ] ],
 	 * [ [ 1, 4 ], [ 3, 6 ], [ 5, 8 ], [ 7, 10 ] ]]
 	 */
-	var words = snowball.stemword(words, language)
+	var words = words.map(stemmer.stem)
 	var shingles = []
 	var shingledIndicesList = []
 	var len = words.length - shingleSize + 1
@@ -513,6 +508,7 @@ async function match({
 	 * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."},
 	 *  ...]
 	 */
+	const stemmer = snowball.newStemmer(language)
 	var inputText = text
 	var sources = []
 
@@ -520,13 +516,13 @@ async function match({
 	var [inputWords, inputIndicesList] = normalizeAndRemoveStopWords(
 		inputWords,
 		inputIndicesList,
-		(language = "english")
+		language
 	)
 	var [inputShingles, inputShingledIndicesList] = shingleAndStemmer(
 		inputWords,
 		inputIndicesList,
 		shingleSize,
-		language
+		stemmer
 	)
 
 	var limit = 32 //32 word limit on google search
@@ -554,8 +550,8 @@ async function match({
 			var comparedUrls = await singleSearchScrape(query)
 		}
 
-		comparedUrls = diff(comparedUrls, usedUrls)
-		usedUrls = union(usedUrls, comparedUrls)
+		var comparedUrls = diff(comparedUrls, usedUrls)
+		var usedUrls = union(usedUrls, comparedUrls)
 
 		var [comparedTexts, comparedTitles] = await downloadWebsites(
 			comparedUrls,
@@ -583,7 +579,7 @@ async function match({
 				comparedWordsTemp,
 				comparedIndicesListTemp,
 				shingleSize,
-				language
+				stemmer
 			)
 
 			var comparedClustersTemp = findUnionAndCluster(
@@ -618,6 +614,7 @@ async function match({
 			)
 		}
 	}
+
 	return sources
 }
 
