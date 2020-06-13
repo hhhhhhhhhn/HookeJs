@@ -5,7 +5,8 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "node test",
-		"format": "npx prettier --write **/*.{js,json,yml,md}"
+		"format": "npx prettier --write **/*.{js,json,yml,md}",
+		"build": "npx browserify -e index.js -o lib/hooke.js"
 	},
 	"repository": {
 		"type": "git",
@@ -18,7 +19,6 @@
 	},
 	"homepage": "https://github.com/oekshido/HookeJs#readme",
 	"dependencies": {
-		"axios": "^0.19.2",
 		"snowball-stemmers": "^0.6.0"
 	},
 	"devDependencies": {

@@ -1,5 +1,74 @@
 const snowball = require("snowball-stemmers")
-const axios = require("axios")
+const inBrowser = typeof window != "undefined"
+
+//// Request section
+
+if (inBrowser) {
+	function get(url, timeout) {
+		/**
+		 * Simple http request.
+		 *
+		 * In: "http://example.com", 60000
+		 *
+		 * Out: "<html><head><title>Example Domain</title>..."
+		 */
+		return new Promise((resolve, reject) => {
+			var out = setTimeout(() => {
+				reject("Request Timed Out")
+			}, timeout)
+			var req = new XMLHttpRequest()
+			req.open("GET", url)
+			req.setRequestHeader("user-agent", "")
+			req.setRequestHeader("origin", "")
+			req.setRequestHeader("referer", "")
+			req.setRequestHeader("sec-fetch-dest", "")
+			req.setRequestHeader("sec-fetch-mode", "")
+			req.setRequestHeader("sec-fetch-site", "")
+			req.send()
+			req.onload = () => {
+				if (req.status == 200) {
+					clearTimeout(out)
+					resolve(req.response)
+				} else {
+					reject(req.response)
+				}
+			}
+		})
+	}
+} else {
+	const http = require("http")
+	const https = require("https")
+
+	function get(url, timeout) {
+		/**
+		 * Simple http request.
+		 *
+		 * In: "http://example.com", 60000
+		 *
+		 * Out: "<html><head><title>Example Domain</title>..."
+		 */
+		return new Promise((resolve, reject) => {
+			var out = setTimeout(() => {
+				reject("Request Timed Out")
+			}, timeout)
+			const handler = (res) => {
+				res.on("data", (d) => {
+					data += d
+				})
+				res.on("end", () => {
+					clearTimeout(out)
+					resolve(data)
+				})
+				res.on("error", () => {
+					reject(data)
+				})
+			}
+			var data = ""
+			if (url.slice(0, 5) == "https") https.get(url, handler)
+			else http.get(url, handler)
+		})
+	}
+}
 
 //// Comparison section
 
@@ -334,8 +403,8 @@ async function singleSearchScrape(query) {
 	var ignore = ["google.com/preferences", "accounts.google"]
 	var url = new URL("https://www.google.com/search")
 	url.searchParams.append("q", query)
-	var response = await axios.get(url.href, {timeout: 60000})
-	var anchorTags = response.data.match(/<a[\s]+([^>]+)>/gi)
+	var response = await get(url.href, 60000)
+	var anchorTags = response.match(/<a[\s]+([^>]+)>/gi)
 	var urls = []
 	for (var tag of anchorTags) {
 		var link = tag.match(/".*?"/)[0]
@@ -364,10 +433,10 @@ async function singleSearchApi(query, apikey, engineid) {
 	url.searchParams.append("q", query)
 	url.searchParams.append("key", apikey)
 	url.searchParams.append("cx", engineid)
-	var response = await axios.get(url.href, {timeout: 60000})
-	if (response.data != undefined && response.data.items != undefined) {
+	var response = JSON.parse(await get(url.href, 60000))
+	if (response != undefined && response.items != undefined) {
 		var urls = []
-		for (item of response.data.items) {
+		for (item of response.items) {
 			urls.push(item.link)
 		}
 		return urls
@@ -386,18 +455,14 @@ async function downloadWebsites(urls, justText = true, verbose = false) {
 	var catchFunction = verbose ? console.log : () => {}
 	var requests = []
 	for (var i = 0; i < urls.length; i++) {
-		requests.push(axios.get(urls[i], {timeout: 60000}).catch(catchFunction))
+		requests.push(get(urls[i], 60000).catch(catchFunction))
 	}
 	var responses = await Promise.all(requests).catch(catchFunction)
-	var htmls = []
+	var htmls = responses.map((e) => {
+		if (typeof e == "string") return e
+		else return ""
+	})
 
-	for (var i = 0; i < responses.length; i++) {
-		if (responses[i] != undefined) {
-			htmls.push(responses[i].data)
-		} else {
-			htmls.push("")
-		}
-	}
 	if (!justText) {
 		return htmls
 	}
@@ -843,4 +908,8 @@ async function autoCitation({
 	return text + bibliography
 }
 
-module.exports = {match, autoCitation, matchPrint}
+if (!inBrowser) {
+	module.exports = {match, autoCitation, matchPrint}
+} else {
+	window["hooke"] = {match, autoCitation, matchPrint}
+}
