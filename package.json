@@ -6,7 +6,8 @@
 	"scripts": {
 		"test": "node test",
 		"format": "npx prettier --write **/*.{js,json,yml,md}",
-		"build": "npx browserify -e index.js -o lib/hooke.js"
+		"build": "npx browserify -e index.js -o lib/hooke.js",
+		"all": "npm run format && npm run build"
 	},
 	"repository": {
 		"type": "git",

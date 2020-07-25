@@ -4,14 +4,14 @@ const inBrowser = typeof window != "undefined"
 //// Request section
 
 if (inBrowser) {
+	/**
+	 * Simple http request.
+	 *
+	 * In: "http://example.com", 60000
+	 *
+	 * Out: "<html><head><title>Example Domain</title>..."
+	 */
 	function get(url, timeout) {
-		/**
-		 * Simple http request.
-		 *
-		 * In: "http://example.com", 60000
-		 *
-		 * Out: "<html><head><title>Example Domain</title>..."
-		 */
 		return new Promise((resolve, reject) => {
 			var out = setTimeout(() => {
 				reject("Request Timed Out")
@@ -33,14 +33,14 @@ if (inBrowser) {
 	const http = require("http")
 	const https = require("https")
 
+	/**
+	 * Simple http request.
+	 *
+	 * In: "http://example.com", 60000
+	 *
+	 * Out: "<html><head><title>Example Domain</title>..."
+	 */
 	function get(url, timeout) {
-		/**
-		 * Simple http request.
-		 *
-		 * In: "http://example.com", 60000
-		 *
-		 * Out: "<html><head><title>Example Domain</title>..."
-		 */
 		return new Promise((resolve, reject) => {
 			var out = setTimeout(() => {
 				reject("Request Timed Out")
@@ -75,15 +75,15 @@ if (inBrowser) {
 
 //// Comparison section
 
+/**
+ * Takes a string as input, outputs indices of spaces in the string. Also, replaces all whitespace characters with
+ * spaces and adds spaces at the beggining and start so it can be separated more easily in the getWords function
+ *
+ * In: "Hello, my name is"
+ *
+ * Out: [-1, 6, 9, 14, 17]
+ */
 function findSpaces(text) {
-	/**
-	 * Takes a string as input, outputs indices of spaces in the string. Also, replaces all whitespace characters with
-	 * spaces and adds spaces at the beggining and start so it can be separated more easily in the getWords function
-	 *
-	 * In: "Hello, my name is"
-	 *
-	 * Out: [-1, 6, 9, 14, 17]
-	 */
 	text = text
 		.replace("\n", " ")
 		.replace("\t", " ")
@@ -101,16 +101,16 @@ function findSpaces(text) {
 	return spaceIndices
 }
 
+/**
+ * Takes text and the output of the findSpaces function as inputs, outputs list of words and list of their indices
+ * in the original string in formant [start, end]
+ *
+ * In: "Hello, my name is", [-1, 6, 9, 14, 17]
+ *
+ * Out: [   [ 'Hello,', 'my', 'name', 'is' ] ,
+ * [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ]]   ]
+ */
 function getWords(text) {
-	/**
-	 * Takes text and the output of the findSpaces function as inputs, outputs list of words and list of their indices
-	 * in the original string in formant [start, end]
-	 *
-	 * In: "Hello, my name is", [-1, 6, 9, 14, 17]
-	 *
-	 * Out: [   [ 'Hello,', 'my', 'name', 'is' ] ,
-	 * [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ]]   ]
-	 */
 	var spaceIndices = findSpaces(text)
 	var words = []
 	var indicesList = []
@@ -128,15 +128,15 @@ function getWords(text) {
 	return [words, indicesList]
 }
 
+/**
+ * Leaves only allowed characters on each word and lowers it, and then removes the stopwords (from stopwords.json)
+ *
+ * In: [ 'Hello,', 'my', 'name', 'is', 'jazz' ] ,  [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ], [20,25]]
+ *
+ * Out: [ [ 'jazz' ], [ [ 20, 25 ] ] ]
+ * (only jazz is not a stopword)
+ */
 function normalizeAndRemoveStopWords(words, indicesList, language = "english") {
-	/**
-	 * Leaves only allowed characters on each word and lowers it, and then removes the stopwords (from stopwords.json)
-	 *
-	 * In: [ 'Hello,', 'my', 'name', 'is', 'jazz' ] ,  [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ], [20,25]]
-	 *
-	 * Out: [ [ 'jazz' ], [ [ 20, 25 ] ] ]
-	 * (only jazz is not a stopword)
-	 */
 	var json = require("./stopwords.json")
 	var stopwords = json[language]
 	var regex = RegExp(json[language + "regex"][0], json[language + "regex"][1]) // All non-allowed characters
@@ -153,19 +153,19 @@ function normalizeAndRemoveStopWords(words, indicesList, language = "english") {
 	return [newWords, newIndicesList]
 }
 
+/**
+ * Stems the words (turns to root form) and optionally shingles them
+ *
+ * Read more:
+ * https://en.wikipedia.org/wiki/Stemming
+ * https://en.wikipedia.org/wiki/W-shingling
+ *
+ * In: ["like", "jazz", "my", "jazzy", "feeling"] , [[1,2], [3,4], [5,6], [7,8], [9,10]] , 2 , "english"
+ *
+ * Out: [ [  [ 'like', 'jazz' ],[ 'jazz', 'my' ],[ 'my', 'jazzi' ],[ 'jazzi', 'feel' ] ],
+ * [ [ 1, 4 ], [ 3, 6 ], [ 5, 8 ], [ 7, 10 ] ]]
+ */
 function shingleAndStemmer(words, indicesList, shingleSize, stemmer) {
-	/**
-	 * Stems the words (turns to root form) and optionally shingles them
-	 *
-	 * Read more:
-	 * https://en.wikipedia.org/wiki/Stemming
-	 * https://en.wikipedia.org/wiki/W-shingling
-	 *
-	 * In: ["like", "jazz", "my", "jazzy", "feeling"] , [[1,2], [3,4], [5,6], [7,8], [9,10]] , 2 , "english"
-	 *
-	 * Out: [ [  [ 'like', 'jazz' ],[ 'jazz', 'my' ],[ 'my', 'jazzi' ],[ 'jazzi', 'feel' ] ],
-	 * [ [ 1, 4 ], [ 3, 6 ], [ 5, 8 ], [ 7, 10 ] ]]
-	 */
 	var words = words.map(stemmer.stem)
 	var shingles = []
 	var shingledIndicesList = []
@@ -180,14 +180,14 @@ function shingleAndStemmer(words, indicesList, shingleSize, stemmer) {
 	return [shingles, shingledIndicesList]
 }
 
+/**
+ * Auxiliary function which unites two arrays, skipping duplicates
+ *
+ * In: [1,2,4,5,7] , [3,4,5,6,7,8]
+ *
+ * Out: [1,2,4,5,7,3,6,8]
+ */
 function union(array1, array2) {
-	/**
-	 * Auxiliary function which unites two arrays, skipping duplicates
-	 *
-	 * In: [1,2,4,5,7] , [3,4,5,6,7,8]
-	 *
-	 * Out: [1,2,4,5,7,3,6,8]
-	 */
 	var len = array2.length
 	for (var i = 0; i < len; i++) {
 		if (!array1.includes(array2[i])) {
@@ -197,14 +197,14 @@ function union(array1, array2) {
 	return array1
 }
 
+/**
+ * Auxiliary function which finds the difference of two arrays (based on the first one)
+ *
+ * In: [1,2,3,4,9], [2,4,7,8]
+ *
+ * Out: [1,3,9]
+ */
 function diff(array1, array2) {
-	/**
-	 * Auxiliary function which finds the difference of two arrays (based on the first one)
-	 *
-	 * In: [1,2,3,4,9], [2,4,7,8]
-	 *
-	 * Out: [1,3,9]
-	 */
 	var output = []
 	for (element of array1) {
 		if (!array2.includes(element)) output.push(element)
@@ -212,22 +212,20 @@ function diff(array1, array2) {
 	return output
 }
 
+/**
+ * Auxiliary function which checks if the elements of both arrays are equal. If they are not arrays just checks if
+ * they are equal.
+ *
+ * In: [1,2,3,4], [2,4,3,1]
+ * Out: false
+ *
+ * In: [1,2,3,4], [1,2,3,4]
+ * Out: true
+ *
+ * In: [[1]], [[1]]
+ * Out: false // because they are different entities and this function isn't recursive
+ */
 function arraysEqual(array1, array2) {
-	/**
-	 * Auxiliary function which checks if the elements of both arrays are equal. If they are not arrays just checks if
-	 * they are equal.
-	 *
-	 * In: [1,2,3,4], [2,4,3,1]
-	 * Out: false
-	 *
-	 * In: [1,2,3,4], [1,2,3,4]
-	 * Out: true
-	 *
-	 * In: [[1]], [[1]]
-	 * Out: false // because they are different entities and this function isn't recursive
-	 *
-	 * In: 4,
-	 */
 	if (array1 == array2) {
 		return true
 	}
@@ -243,6 +241,18 @@ function arraysEqual(array1, array2) {
 	return true
 }
 
+/**
+ * Finds the points matching in both shingle sets, then finds the clusters in which they are close together
+ * (a match)
+ *
+ * In: [["a"],["b"],["c"],["d"]], [["x"],["c"],["d"],["y"]], 2, 1
+ * Out: [ [ [ 2, 1 ], [ 3, 2 ] ] ]
+ *
+ * Meaning there was one cluster, consisting of the indices 2 and 3 ("b" and "c") of the first array, and indices 1
+ * and 2 of the second array (also "b" and "c")
+ *
+ * The returnMatches argument return the matches without any cluster done to them
+ */
 function findUnionAndCluster(
 	shingles1,
 	shingles2,
@@ -250,18 +260,6 @@ function findUnionAndCluster(
 	minimumClusterSize = 1,
 	returnMatches = false
 ) {
-	/**
-	 * Finds the points matching in both shingle sets, then finds the clusters in which they are close together
-	 * (a match)
-	 *
-	 * In: [["a"],["b"],["c"],["d"]], [["x"],["c"],["d"],["y"]], 2, 1
-	 * Out: [ [ [ 2, 1 ], [ 3, 2 ] ] ]
-	 *
-	 * Meaning there was one cluster, consisting of the indices 2 and 3 ("b" and "c") of the first array, and indices 1
-	 * and 2 of the second array (also "b" and "c")
-	 *
-	 * The returnMatches argument return the matches without any cluster done to them
-	 */
 	var matches = []
 	for (var i = 0; i < shingles1.length; i++) {
 		for (var j = 0; j < shingles2.length; j++) {
@@ -323,13 +321,13 @@ function findUnionAndCluster(
 	return newClusters
 }
 
+/**
+ * Returns the indices of matches based on the original text.
+ *
+ * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
+ * Out: [1, 9]
+ */
 function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList) {
-	/**
-	 * Returns the indices of matches based on the original text.
-	 *
-	 * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
-	 * Out: [1, 9]
-	 */
 	return [
 		shingledIndicesList[shingleStart][0],
 		shingledIndicesList[shingleEnd][1]
@@ -338,37 +336,37 @@ function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList) {
 
 //// Search section
 
+/**
+ * Checks if any element in a list contains a substring of the given string
+ *
+ * In: "hello there", ["xyz", "thi", "re"]
+ * Out: true
+ */
 function includesSubstringFromArray(string, array) {
-	/**
-	 * Checks if any element in a list contains a substring of the given string
-	 *
-	 * In: "hello there", ["xyz", "thi", "re"]
-	 * Out: true
-	 */
 	for (var substring of array) {
 		if (string.includes(substring)) return true
 	}
 	return false
 }
 
+/**
+ * Auxiliary function to convert html to plain text
+ *
+ * Modified from EpokK @
+ *https://stackoverflow.com/questions/15180173/convert-html-to-plain-text-in-js-without-browser-environment/15180206
+ *
+ * In: "<html><head><title>Example Domain</title>..."
+ *
+ * Out:
+ *Example Domain
+ *
+ *Example Domain
+ *This domain is for use in illustrative examples in documents. You may use this
+ *domain in literature without prior coordination or asking for permission.
+ *
+ *More information...
+ */
 function html2text(htmlCode) {
-	/**
-	 * Auxiliary function to convert html to plain text
-	 *
-	 * Modified from EpokK @
-	 *https://stackoverflow.com/questions/15180173/convert-html-to-plain-text-in-js-without-browser-environment/15180206
-	 *
-	 * In: "<html><head><title>Example Domain</title>..."
-	 *
-	 * Out:
-	 *Example Domain
-	 *
-	 *Example Domain
-	 *This domain is for use in illustrative examples in documents. You may use this
-	 *domain in literature without prior coordination or asking for permission.
-	 *
-	 *More information...
-	 */
 	htmlCode = String(htmlCode)
 		.replace(/<style([\s\S]*?)<\/style>/gi, "")
 		.replace(/<script([\s\S]*?)<\/script>/gi, "")
@@ -376,14 +374,14 @@ function html2text(htmlCode) {
 	return htmlCode
 }
 
+/**
+ * Gets contents inside title tag in html.
+ *
+ * In: "<head> ... <title >HookeJs/index.js at master · oekshido/HookeJs</title> ... "
+ *
+ * Out: HookeJs/index.js at master · oekshido/HookeJs
+ */
 function getTitle(html) {
-	/**
-	 * Gets contents inside title tag in html.
-	 *
-	 * In: "<head> ... <title >HookeJs/index.js at master · oekshido/HookeJs</title> ... "
-	 *
-	 * Out: HookeJs/index.js at master · oekshido/HookeJs
-	 */
 	if (typeof html != "string") {
 		return ""
 	}
@@ -396,13 +394,13 @@ function getTitle(html) {
 	}
 }
 
+/**
+ * Searches the given query scraping google
+ *
+ * In: "Jazz"
+ * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
+ */
 async function singleSearchScrape(query) {
-	/**
-	 * Searches the given query scraping google
-	 *
-	 * In: "Jazz"
-	 * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
-	 */
 	var ignore = [
 		"google.com/preferences",
 		"accounts.google",
@@ -428,14 +426,14 @@ async function singleSearchScrape(query) {
 	return urls
 }
 
+/**
+ * Searches the given query using the custom search engine api
+ *
+ * In: "Jazz"
+ *
+ * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
+ */
 async function singleSearchApi(query, apikey, engineid) {
-	/**
-	 * Searches the given query using the custom search engine api
-	 *
-	 * In: "Jazz"
-	 *
-	 * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
-	 */
 	var url = new URL("https://www.googleapis.com/customsearch/v1")
 	url.searchParams.append("q", query)
 	url.searchParams.append("key", apikey)
@@ -452,13 +450,13 @@ async function singleSearchApi(query, apikey, engineid) {
 	}
 }
 
+/**
+ * Downloads text of the urls given, or returns html if justText is false.
+ *
+ * In: ["http://example.com/", ...]
+ * Out: ["Example Domain\n ...", ...]
+ */
 async function downloadWebsites(urls, justText = true, verbose = false) {
-	/**
-	 * Downloads text of the urls given, or returns html if justText is false.
-	 *
-	 * In: ["http://example.com/", ...]
-	 * Out: ["Example Domain\n ...", ...]
-	 */
 	var catchFunction = verbose ? console.log : () => {}
 	var requests = []
 	for (var i = 0; i < urls.length; i++) {
@@ -485,11 +483,11 @@ async function downloadWebsites(urls, justText = true, verbose = false) {
 
 //// Use section
 
+/**
+ * Class which represents a source, with the variable being source(its url), matches(array of class Match), and the
+ * text
+ */
 class Source {
-	/**
-	 * Class which represents a source, with the variable being source(its url), matches(array of class Match), and the
-	 * text
-	 */
 	constructor(source, matches, text, title) {
 		this.source = source
 		this.matches = matches
@@ -498,21 +496,21 @@ class Source {
 	}
 }
 
+/**
+ * Represents a specific cluster, with extra funcionality
+ */
 class Match {
-	/**
-	 * Represents a specific cluster, with extra funcionality
-	 */
 	constructor(cluster, source, sourceTitle) {
 		this.cluster = cluster
 		this.source = source
 		this.sourceTitle = sourceTitle
 	}
 
+	/**
+	 * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared
+	 * divided by the end minus start of the cluster, or the length times density, or zero if it is len zero
+	 */
 	contextualize(inputShingledIndicesList, comparedShingledIndicesList) {
-		/**
-		 * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared
-		 * divided by the end minus start of the cluster, or the length times density, or zero if it is len zero
-		 */
 		var len = this.cluster.length
 		this.inputShingleStart = this.inputShingleEnd = this.cluster[0][0]
 		this.comparedShingleStart = this.comparedShingleEnd = this.cluster[0][1]
@@ -549,10 +547,10 @@ class Match {
 		}
 	}
 
+	/**
+	 * Returns given the period indices the nearest period after it
+	 */
 	findNearestPeriod(periodIndices, margin = 5) {
-		/**
-		 * Returns given the period indices the nearest period after it
-		 */
 		for (var i = 0; i < periodIndices.length; i++) {
 			if (periodIndices[i] >= this.inputEnd - margin) {
 				return periodIndices[i]
@@ -561,6 +559,15 @@ class Match {
 	}
 }
 
+/**
+ * Takes th input text and searches the internet for similar texts, and finds matches between them.
+ *
+ * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in " +
+ * "literature without prior coordination or asking for permission. More information..."
+ *
+ * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."},
+ *  ...]
+ */
 async function match({
 	text = "",
 	language = "english",
@@ -571,15 +578,6 @@ async function match({
 	minimumClusterSize = 5,
 	verbose = false
 } = {}) {
-	/**
-	 * Takes th input text and searches the internet for similar texts, and finds matches between them.
-	 *
-	 * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in " +
-	 * "literature without prior coordination or asking for permission. More information..."
-	 *
-	 * Out: [Source{source: "http://www.example.com", matches = [Match{...}, ...], text = "Example Domain Example ..."},
-	 *  ...]
-	 */
 	const stemmer = snowball.newStemmer(language)
 	var inputText = text
 	var sources = []
@@ -690,6 +688,9 @@ async function match({
 	return sources
 }
 
+/**
+ * Runs the match function and prints it
+ */
 async function matchPrint({
 	text = "",
 	minScore = 5,
@@ -700,9 +701,6 @@ async function matchPrint({
 	maximumGap = 3,
 	minimumClusterSize = 5
 } = {}) {
-	/**
-	 * Runs the match function and prints it
-	 */
 	var sources = await match({
 		text: text,
 		language: language,
@@ -735,14 +733,14 @@ async function matchPrint({
 	}
 }
 
+/**
+ * Auxiliary function which finds a which fraction of the smallest intervals is intersecting the bigger one.
+ *
+ * In: 3,5,0,4  i.e.  [3,5], [0,4]
+ *
+ * Out: 0.5
+ */
 function findIntervalUnionPercent(start1, end1, start2, end2) {
-	/**
-	 * Auxiliary function which finds a which fraction of the smallest intervals is intersecting the bigger one.
-	 *
-	 * In: 3,5,0,4  i.e.  [3,5], [0,4]
-	 *
-	 * Out: 0.5
-	 */
 	if (start2 > end1 || start1 > end2) {
 		return 0
 	} else {
@@ -753,18 +751,18 @@ function findIntervalUnionPercent(start1, end1, start2, end2) {
 	}
 }
 
+/**
+ * Auxuliary function similar to findSpaces, adapted to any character and without whitespace modification.
+ *
+ * In: "ABC.DFGH.IJ", ".", true
+ *
+ * Out: [ 3, 8, 11 ]
+ *
+ * In: "ABC.DFGH.IJ", ".", false
+ *
+ * Out: [ 3, 8 ]
+ */
 function findCharacterInText(text, character, setLastCharacter = true) {
-	/**
-	 * Auxuliary function similar to findSpaces, adapted to any character and without whitespace modification.
-	 *
-	 * In: "ABC.DFGH.IJ", ".", true
-	 *
-	 * Out: [ 3, 8, 11 ]
-	 *
-	 * In: "ABC.DFGH.IJ", ".", false
-	 *
-	 * Out: [ 3, 8 ]
-	 */
 	var indices = []
 	for (var i = 0; i < text.length; i++) {
 		if (text.charAt(i) == character) {
@@ -781,14 +779,14 @@ function isSubstringUnique(string, substring) {
 	return string.split(substring).length == 2
 }
 
+/**
+ * Finds unique substring stopping in the given index.
+ *
+ * In: "abc.zbc.wcm.", 7, 2
+ *
+ * Out: "zbc"
+ */
 function findUniqueSubstring(text, replacementIndex, minimumSize = 10) {
-	/**
-	 * Finds unique substring stopping in the given index.
-	 *
-	 * In: "abc.zbc.wcm.", 7, 2
-	 *
-	 * Out: "zbc"
-	 */
 	while (minimumSize < replacementIndex) {
 		if (
 			isSubstringUnique(
@@ -804,6 +802,34 @@ function findUniqueSubstring(text, replacementIndex, minimumSize = 10) {
 	return text.slice(0, replacementIndex)
 }
 
+/**
+ * Uses previous functions to automatically generate texts to be replaced and a bibliography based on the internet
+ *
+ * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in" +
+ * "literature without prior coordination or asking for permission. More information. Hello there, this is not " +
+ * "part of the match"
+ *
+ * Out: [
+ * [ [ 'nformation', 'nformation[1]' ] ],
+ *  '\n' +
+ *      '\n' +
+ *      '\n' +
+ *      'Bibliography\n' +
+ *      '\n' +
+ *      '[1] Example Domain (n.d.). Retrieved from https://example.com/\n'
+ *  ]
+ *
+ * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in " +
+ * "literature without prior coordination or asking for permission. Hello there, this is not part of the match",true
+ *
+ * Out: `Example Domain This domain is for use in illustrative examples in documents. You may use this domain in
+ * literature without prior coordination or asking for permission[1]. Hello there, this is not part of the match
+ *
+ *
+ * Bibliography
+ *
+ * [1] Example Domain (n.d.). Retrieved from https://example.com/"`
+ */
 async function autoCitation({
 	text = "",
 	replace = false,
@@ -816,34 +842,6 @@ async function autoCitation({
 	percentToMerge = 0.6,
 	verbose = false
 } = {}) {
-	/**
-	 * Uses previous functions to automatically generate texts to be replaced and a bibliography based on the internet
-	 *
-	 * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in" +
-	 * "literature without prior coordination or asking for permission. More information. Hello there, this is not " +
-	 * "part of the match"
-	 *
-	 * Out: [
-	 * [ [ 'nformation', 'nformation[1]' ] ],
-	 *  '\n' +
-	 *      '\n' +
-	 *      '\n' +
-	 *      'Bibliography\n' +
-	 *      '\n' +
-	 *      '[1] Example Domain (n.d.). Retrieved from https://example.com/\n'
-	 *  ]
-	 *
-	 * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in " +
-	 * "literature without prior coordination or asking for permission. Hello there, this is not part of the match",true
-	 *
-	 * Out: `Example Domain This domain is for use in illustrative examples in documents. You may use this domain in
-	 * literature without prior coordination or asking for permission[1]. Hello there, this is not part of the match
-	 *
-	 *
-	 * Bibliography
-	 *
-	 * [1] Example Domain (n.d.). Retrieved from https://example.com/"`
-	 */
 	var sources = await match({
 		text: text,
 		language: language,
