@@ -1,21 +1,20 @@
+// @ts-ignore
 const snowball = require("snowball-stemmers")
+import data from "./stopwords.json"
 const inBrowser = typeof window != "undefined"
 
-//// Request section
+type Language = "english" | "spanish"
+const english: Language = "english"
 
+let get: (url: string, timeoutMs: number) => Promise<string>
+
+//// Request section
 if (inBrowser) {
-	/**
-	 * Simple http request.
-	 *
-	 * In: "http://example.com", 60000
-	 *
-	 * Out: "<html><head><title>Example Domain</title>..."
-	 */
-	function get(url, timeout) {
+	get = (url: string, timeoutMs: number) => {
 		return new Promise((resolve, reject) => {
 			let out = setTimeout(() => {
 				reject("Request Timed Out")
-			}, timeout)
+			}, timeoutMs)
 			let req = new XMLHttpRequest()
 			req.open("GET", url)
 			req.send()
@@ -33,21 +32,14 @@ if (inBrowser) {
 	const http = require("http")
 	const https = require("https")
 
-	/**
-	 * Simple http request.
-	 *
-	 * In: "http://example.com", 60000
-	 *
-	 * Out: "<html><head><title>Example Domain</title>..."
-	 */
-	function get(url, timeout) {
+	get = (url: string, timeoutMs: number) => {
 		return new Promise((resolve, reject) => {
 			let out = setTimeout(() => {
 				reject("Request Timed Out")
-			}, timeout)
+			}, timeoutMs)
 			let data = ""
-			const handler = (res) => {
-				res.on("data", (d) => {
+			const handler = (res: any) => {
+				res.on("data", (d: string) => {
 					data += d
 				})
 				res.on("end", () => {
@@ -76,32 +68,6 @@ if (inBrowser) {
 //// Comparison section
 
 /**
- * Takes a string as input, outputs indices of spaces in the string. Also, replaces all whitespace characters with
- * spaces and adds spaces at the beggining and start so it can be separated more easily in the getWords function
- *
- * In: "Hello, my name is"
- *
- * Out: [-1, 6, 9, 14, 17]
- */
-function findSpaces(text) {
-	text = text
-		.replace("\n", " ")
-		.replace("\t", " ")
-		.replace("\r", " ")
-		.replace(".", " ")
-	let spaceIndices = []
-	let len = text.length
-	for (let i = 0; i < len; i++) {
-		if (text.charAt(i) == " ") {
-			spaceIndices.push(i)
-		}
-	}
-	spaceIndices.unshift(-1)
-	spaceIndices.push(text.length)
-	return spaceIndices
-}
-
-/**
  * Takes text and the output of the findSpaces function as inputs, outputs list of words and list of their indices
  * in the original string in formant [start, end]
  *
@@ -110,22 +76,18 @@ function findSpaces(text) {
  * Out: [   [ 'Hello,', 'my', 'name', 'is' ] ,
  * [[ 0, 6 ], [ 7, 9 ], [ 10, 14 ], [ 15, 17 ]]   ]
  */
-function getWords(text) {
-	let spaceIndices = findSpaces(text)
-	let words = []
-	let indicesList = []
-	let len = spaceIndices.length - 1 // One is substracted because the for
-	for (let i = 0; i < len; i++) {
-		// loop uses two elements
-		if (spaceIndices[i + 1] - spaceIndices[i] > 1) {
-			// Doesn't count two spaces in a row
-			let wordStart = spaceIndices[i] + 1,
-				wordEnd = spaceIndices[i + 1]
-			words.push(text.slice(wordStart, wordEnd))
-			indicesList.push([wordStart, wordEnd])
-		}
-	}
-	return [words, indicesList]
+function getWords(text: string, language = english): [string[], number[][]] {
+	let regex = new RegExp(
+		data[language].wordregex[0],
+		data[language].wordregex[1]
+	)
+	let words: string[] = []
+	let indices: number[][] = []
+	Array.from(text.matchAll(regex)).forEach((match) => {
+		words.push(match[0])
+		indices.push([match.index || 0, (match.index || 0) + match.length])
+	})
+	return [words, indices]
 }
 
 /**
@@ -136,17 +98,24 @@ function getWords(text) {
  * Out: [ [ 'jazz' ], [ [ 20, 25 ] ] ]
  * (only jazz is not a stopword)
  */
-function normalizeAndRemoveStopWords(words, indicesList, language = "english") {
-	let json = require("./stopwords.json")
-	let stopwords = json[language]
-	let regex = RegExp(json[language + "regex"][0], json[language + "regex"][1]) // All non-allowed characters
+function normalizeAndRemoveStopWords(
+	words: string[],
+	indicesList: number[][],
+	language = english
+): [string[], number[][]] {
+	let stopwords = data[language].stopwords
+	let spaces = RegExp(
+		data[language].spaceregex[0],
+		data[language].spaceregex[1]
+	) // All non-allowed characters
+
 	let newWords = []
 	let newIndicesList = []
-	let len = words.length
-	for (let i = 0; i < len; i++) {
-		words[i] = words[i].toLowerCase().replace(regex, "")
-		if (!stopwords.includes(words[i])) {
-			newWords.push(words[i])
+
+	for (let i = 0; i < words.length; i++) {
+		let word = words[i].toLowerCase().replace(spaces, "")
+		if (!stopwords.includes(word)) {
+			newWords.push(word)
 			newIndicesList.push(indicesList[i])
 		}
 	}
@@ -165,10 +134,15 @@ function normalizeAndRemoveStopWords(words, indicesList, language = "english") {
  * Out: [ [  [ 'like', 'jazz' ],[ 'jazz', 'my' ],[ 'my', 'jazzi' ],[ 'jazzi', 'feel' ] ],
  * [ [ 1, 4 ], [ 3, 6 ], [ 5, 8 ], [ 7, 10 ] ]]
  */
-function shingleAndStemmer(words, indicesList, shingleSize, stemmer) {
-	words = words.map(stemmer.stem)
-	let shingles = []
-	let shingledIndicesList = []
+function shingleAndStemmer(
+	words: string[],
+	indicesList: number[][],
+	shingleSize: number,
+	stemmer: (_: string) => string
+): [string[][], number[][]] {
+	words = words.map(stemmer)
+	let shingles: string[][] = []
+	let shingledIndicesList: number[][] = []
 	let len = words.length - shingleSize + 1
 	for (let i = 0; i < len; i++) {
 		shingles.push(words.slice(i, i + shingleSize))
@@ -187,7 +161,7 @@ function shingleAndStemmer(words, indicesList, shingleSize, stemmer) {
  *
  * Out: [1,2,4,5,7,3,6,8]
  */
-function union(array1, array2) {
+function union<T>(array1: T[], array2: T[]): T[] {
 	let len = array2.length
 	for (let i = 0; i < len; i++) {
 		if (!array1.includes(array2[i])) {
@@ -204,9 +178,9 @@ function union(array1, array2) {
  *
  * Out: [1,3,9]
  */
-function diff(array1, array2) {
+function diff<T>(array1: T[], array2: T[]): T[] {
 	let output = []
-	for (element of array1) {
+	for (let element of array1) {
 		if (!array2.includes(element)) output.push(element)
 	}
 	return output
@@ -225,7 +199,7 @@ function diff(array1, array2) {
  * In: [[1]], [[1]]
  * Out: false // because they are different entities and this function isn't recursive
  */
-function arraysEqual(array1, array2) {
+function arraysEqual<T>(array1: T[], array2: T[]): boolean {
 	if (array1 == array2) {
 		return true
 	}
@@ -254,13 +228,13 @@ function arraysEqual(array1, array2) {
  * The returnMatches argument return the matches without any cluster done to them
  */
 function findUnionAndCluster(
-	shingles1,
-	shingles2,
+	shingles1: string[][],
+	shingles2: string[][],
 	maximumGap = 3,
 	minimumClusterSize = 1,
 	returnMatches = false
-) {
-	let matches = []
+): number[][][] | [number[][][], number[][]] {
+	let matches: number[][] = []
 	for (let i = 0; i < shingles1.length; i++) {
 		for (let j = 0; j < shingles2.length; j++) {
 			if (arraysEqual(shingles1[i], shingles2[j])) {
@@ -269,7 +243,7 @@ function findUnionAndCluster(
 		}
 	}
 	//clustering
-	let clusters = []
+	let clusters: number[][][] = []
 	for (let i = 0; i < matches.length; i++) {
 		// For every matching point
 		let inCluster = null // By default it is not in any cluster
@@ -327,7 +301,11 @@ function findUnionAndCluster(
  * In: 0,2, [[1,4],[5,7],[8,9],[12,15]]
  * Out: [1, 9]
  */
-function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList) {
+function findClusterStartAndEnd(
+	shingleStart: number,
+	shingleEnd: number,
+	shingledIndicesList: number[][]
+): number[] {
 	return [
 		shingledIndicesList[shingleStart][0],
 		shingledIndicesList[shingleEnd][1]
@@ -342,7 +320,7 @@ function findClusterStartAndEnd(shingleStart, shingleEnd, shingledIndicesList) {
  * In: "hello there", ["xyz", "thi", "re"]
  * Out: true
  */
-function includesSubstringFromArray(string, array) {
+function includesSubstringFromArray(string: string, array: string[]): boolean {
 	for (let substring of array) {
 		if (string.includes(substring)) return true
 	}
@@ -366,7 +344,7 @@ function includesSubstringFromArray(string, array) {
  *
  *More information...
  */
-function html2text(htmlCode) {
+function html2text(htmlCode: string): string {
 	htmlCode = String(htmlCode)
 		.replace(/<style([\s\S]*?)<\/style>/gi, "")
 		.replace(/<script([\s\S]*?)<\/script>/gi, "")
@@ -381,17 +359,13 @@ function html2text(htmlCode) {
  *
  * Out: HookeJs/index.js at master · oekshido/HookeJs
  */
-function getTitle(html) {
+function getTitle(html: string) {
 	if (typeof html != "string") {
 		return ""
 	}
 	let a = RegExp("title(.*?)/title", "i")
 	let b = RegExp(">(.*?)<", "i")
-	try {
-		return html.match(a)[0].match(b)[0].slice(1, -1)
-	} catch {
-		return ""
-	}
+	return html.match(a)?.[0].match(b)?.[0].slice(1, -1) || ""
 }
 
 /**
@@ -400,23 +374,25 @@ function getTitle(html) {
  * In: "Jazz"
  * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
  */
-async function singleSearchScrape(query) {
+async function singleSearchScrape(query: string) {
 	let ignore = [
 		"google.com/preferences",
 		"accounts.google",
-		"google.com/webhp"
+		"google.com/webhp",
+		"google.com/"
 	]
 	let url = new URL("https://www.google.com/search")
 	url.searchParams.append("q", query)
 	let response = await get(url.href, 60000)
-	let anchorTags = response.match(/<a[\s]+([^>]+)>/gi)
-	let urls = []
+	let anchorTags = response.match(/<a[\s]+([^>]+)>/gi) || []
+	let urls: string[] = []
 	for (let tag of anchorTags) {
-		let link = tag.match(/".*?"/)[0]
+		let link = tag.match(/".*?"/)?.[0] || ""
 		let start = link.slice(1, 5)
 		link = link.slice(1, -1).split("&")[0]
 		if (
 			start == "http" &&
+			link != "" &&
 			!includesSubstringFromArray(link, ignore) &&
 			!urls.includes(link)
 		) {
@@ -433,7 +409,11 @@ async function singleSearchScrape(query) {
  *
  * Out: ["https://en.wikipedia.org/wiki/Jazz", ...]
  */
-async function singleSearchApi(query, apikey, engineid) {
+async function singleSearchApi(
+	query: string,
+	apikey: string,
+	engineid: string
+) {
 	let url = new URL("https://www.googleapis.com/customsearch/v1")
 	url.searchParams.append("q", query)
 	url.searchParams.append("key", apikey)
@@ -441,7 +421,7 @@ async function singleSearchApi(query, apikey, engineid) {
 	let response = JSON.parse(await get(url.href, 60000))
 	if (response != undefined && response.items != undefined) {
 		let urls = []
-		for (item of response.items) {
+		for (let item of response.items) {
 			urls.push(item.link)
 		}
 		return urls
@@ -456,13 +436,17 @@ async function singleSearchApi(query, apikey, engineid) {
  * In: ["http://example.com/", ...]
  * Out: ["Example Domain\n ...", ...]
  */
-async function downloadWebsites(urls, justText = true, verbose = false) {
+async function downloadWebsites(
+	urls: string[],
+	justText = true,
+	verbose = false
+) {
 	let catchFunction = verbose ? console.log : () => {}
 	let requests = []
 	for (let i = 0; i < urls.length; i++) {
-		requests.push(get(urls[i], 60000).catch(catchFunction))
+		requests.push(get(urls[i], 60000))
 	}
-	let responses = await Promise.all(requests).catch(catchFunction)
+	let responses = (await Promise.all(requests).catch(catchFunction)) || []
 	let htmls = responses.map((e) => {
 		if (typeof e == "string") return e
 		else return ""
@@ -488,7 +472,11 @@ async function downloadWebsites(urls, justText = true, verbose = false) {
  * text
  */
 class Source {
-	constructor(source, matches, text, title) {
+	source: string
+	matches: Match[]
+	text: string
+	title: string
+	constructor(source: string, matches: Match[], text: string, title: string) {
 		this.source = source
 		this.matches = matches
 		this.text = text
@@ -500,9 +488,21 @@ class Source {
  * Represents a specific cluster, with extra funcionality
  */
 class Match {
-	constructor(cluster, source, sourceTitle) {
+	cluster: number[][]
+	source: string // TODO: Change this to "url"
+	sourceTitle: string
+	inputShingleStart: number = 0
+	inputShingleEnd: number = 0
+	comparedShingleStart: number = 0
+	comparedShingleEnd: number = 0
+	inputStart: number = 0
+	inputEnd: number = 0
+	comparedStart: number = 0
+	comparedEnd: number = 0
+	score: number = 0
+	constructor(cluster: number[][], url: string, sourceTitle: string) {
 		this.cluster = cluster
-		this.source = source
+		this.source = url
 		this.sourceTitle = sourceTitle
 	}
 
@@ -510,7 +510,10 @@ class Match {
 	 * Finds the start and end of the match, and gives it an overall score equals to the amount of matches squared
 	 * divided by the end minus start of the cluster, or the length times density, or zero if it is len zero
 	 */
-	contextualize(inputShingledIndicesList, comparedShingledIndicesList) {
+	contextualize(
+		inputShingledIndicesList: number[][],
+		comparedShingledIndicesList: number[][]
+	) {
 		let len = this.cluster.length
 		this.inputShingleStart = this.inputShingleEnd = this.cluster[0][0]
 		this.comparedShingleStart = this.comparedShingleEnd = this.cluster[0][1]
@@ -550,7 +553,7 @@ class Match {
 	/**
 	 * Returns given the period indices the nearest period after it
 	 */
-	findNearestPeriod(periodIndices, margin = 5) {
+	findNearestPeriod(periodIndices: number[], margin = 5): number | undefined {
 		for (let i = 0; i < periodIndices.length; i++) {
 			if (periodIndices[i] >= this.inputEnd - margin) {
 				return periodIndices[i]
@@ -570,15 +573,15 @@ class Match {
  */
 async function match({
 	text = "",
-	language = "english",
+	language = english,
 	shingleSize = 2,
-	apikey = process.env.G_API_KEY,
-	engineid = process.env.G_ENGINE_ID,
+	apikey = process.env.G_API_KEY || "",
+	engineid = process.env.G_ENGINE_ID || "",
 	maximumGap = 3,
 	minimumClusterSize = 5,
 	verbose = false
-} = {}) {
-	const stemmer = snowball.newStemmer(language)
+} = {}): Promise<Source[]> {
+	const stemmer = snowball.newStemmer(language).stem
 	let inputText = text
 	let sources = []
 
@@ -604,9 +607,9 @@ async function match({
 		)
 	}
 
-	let usedUrls = [] // Urls that have already have been used.
+	let usedUrls: string[] = [] // Urls that have already have been used.
 	for (let query of searchQueries) {
-		let comparedUrls
+		let comparedUrls: string[]
 		if (apikey && engineid) {
 			try {
 				comparedUrls = await singleSearchApi(query, apikey, engineid)
@@ -620,41 +623,37 @@ async function match({
 		comparedUrls = diff(comparedUrls, usedUrls) // New urls
 		usedUrls = union(usedUrls, comparedUrls)
 
-		let [comparedTexts, comparedTitles] = await downloadWebsites(
+		let [comparedTexts, comparedTitles] = (await downloadWebsites(
 			comparedUrls,
 			true,
 			verbose
-		).catch(console.log)
+		).catch(console.log)) || [[], []]
 		for (let i = 0; i < comparedTexts.length; i++) {
 			let [comparedWordsTemp, comparedIndicesListTemp] = getWords(
 				comparedTexts[i]
 			)
 
-			;[
-				comparedWordsTemp,
-				comparedIndicesListTemp
-			] = normalizeAndRemoveStopWords(
-				comparedWordsTemp,
-				comparedIndicesListTemp,
-				language
-			)
+			;[comparedWordsTemp, comparedIndicesListTemp] =
+				normalizeAndRemoveStopWords(
+					comparedWordsTemp,
+					comparedIndicesListTemp,
+					language
+				)
 
-			let [
-				comparedShinglesTemp,
-				comparedShingledIndicesListTemp
-			] = shingleAndStemmer(
-				comparedWordsTemp,
-				comparedIndicesListTemp,
-				shingleSize,
-				stemmer
-			)
+			let [comparedShinglesTemp, comparedShingledIndicesListTemp] =
+				shingleAndStemmer(
+					comparedWordsTemp,
+					comparedIndicesListTemp,
+					shingleSize,
+					stemmer
+				)
 
 			let comparedClustersTemp = findUnionAndCluster(
 				inputShingles,
 				comparedShinglesTemp,
 				maximumGap,
 				minimumClusterSize
-			)
+			) as number[][][]
 
 			let matchesTemp = []
 			for (let j = 0; j < comparedClustersTemp.length; j++) {
@@ -688,19 +687,11 @@ async function match({
 /**
  * Runs the match function and prints it
  */
-async function matchPrint({
-	text = "",
-	minScore = 5,
-	language = "english",
-	shingleSize = 2,
-	apikey = process.env.G_API_KEY,
-	engineid = process.env.G_ENGINE_ID,
-	maximumGap = 3,
-	minimumClusterSize = 5
-} = {}) {
-	let sources = await match(arguments[0]).catch(console.log)
+async function matchPrint(matchArgs: Parameters<typeof match>, minScore = 5) {
+	let text = matchArgs[0]?.text || ""
+	let sources = (await match(matchArgs[0]).catch(console.log)) || []
 	console.log("\n\n\nComparison")
-	for (source of sources) {
+	for (let source of sources) {
 		for (let singleMatch of source.matches) {
 			if (singleMatch.score >= minScore) {
 				console.log(`\n\n\nFROM ${source.source}\n\n`)
@@ -722,189 +713,9 @@ async function matchPrint({
 	}
 }
 
-/**
- * Auxiliary function which finds a which fraction of the smallest intervals is intersecting the bigger one.
- *
- * In: 3,5,0,4  i.e.  [3,5], [0,4]
- *
- * Out: 0.5
- */
-function findIntervalUnionPercent(start1, end1, start2, end2) {
-	if (start2 > end1 || start1 > end2) {
-		return 0
-	} else {
-		return (
-			(Math.min(end1, end2) - Math.max(start1, start2)) /
-			Math.min(end1 - start1, end2 - start2)
-		)
-	}
-}
-
-/**
- * Auxuliary function similar to findSpaces, adapted to any character and without whitespace modification.
- *
- * In: "ABC.DFGH.IJ", ".", true
- *
- * Out: [ 3, 8, 11 ]
- *
- * In: "ABC.DFGH.IJ", ".", false
- *
- * Out: [ 3, 8 ]
- */
-function findCharacterInText(text, character, setLastCharacter = true) {
-	let indices = []
-	for (let i = 0; i < text.length; i++) {
-		if (text.charAt(i) == character) {
-			indices.push(i)
-		}
-	}
-	if (setLastCharacter) {
-		indices.push(text.length)
-	}
-	return indices
-}
-
-function isSubstringUnique(string, substring) {
-	return string.split(substring).length == 2
-}
-
-/**
- * Finds unique substring stopping in the given index.
- *
- * In: "abc.zbc.wcm.", 7, 2
- *
- * Out: "zbc"
- */
-function findUniqueSubstring(text, replacementIndex, minimumSize = 10) {
-	while (minimumSize < replacementIndex) {
-		if (
-			isSubstringUnique(
-				text,
-				text.slice(replacementIndex - minimumSize, replacementIndex)
-			)
-		) {
-			//If slice is unique
-			return text.slice(replacementIndex - minimumSize, replacementIndex)
-		}
-		minimumSize++
-	}
-	return text.slice(0, replacementIndex)
-}
-
-/**
- * Uses previous functions to automatically generate texts to be replaced and a bibliography based on the internet
- *
- * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in" +
- * "literature without prior coordination or asking for permission. More information. Hello there, this is not " +
- * "part of the match"
- *
- * Out: [
- * [ [ 'nformation', 'nformation[1]' ] ],
- *  '\n' +
- *      '\n' +
- *      '\n' +
- *      'Bibliography\n' +
- *      '\n' +
- *      '[1] Example Domain (n.d.). Retrieved from https://example.com/\n'
- *  ]
- *
- * In: "Example Domain This domain is for use in illustrative examples in documents. You may use this domain in " +
- * "literature without prior coordination or asking for permission. Hello there, this is not part of the match",true
- *
- * Out: `Example Domain This domain is for use in illustrative examples in documents. You may use this domain in
- * literature without prior coordination or asking for permission[1]. Hello there, this is not part of the match
- *
- *
- * Bibliography
- *
- * [1] Example Domain (n.d.). Retrieved from https://example.com/"`
- */
-async function autoCitation({
-	text = "",
-	replace = false,
-	language = "english",
-	shingleSize = 2,
-	apikey = process.env.G_API_KEY,
-	engineid = process.env.G_ENGINE_ID,
-	maximumGap = 3,
-	minimumClusterSize = 5,
-	percentToMerge = 0.6,
-	verbose = false
-} = {}) {
-	let sources = await match({
-		text: text,
-		language: language,
-		shingleSize: shingleSize,
-		apiKey: apikey,
-		engineid: engineid,
-		maximumGap: maximumGap,
-		minimumClusterSize: minimumClusterSize,
-		verbose: verbose
-	}).catch(console.log)
-
-	let matches = []
-	for (let i = 0; i < sources.length; i++) {
-		Array.prototype.push.apply(matches, sources[i].matches)
-	}
-	let finalMatches = []
-	for (let i = 0; i < matches.length; i++) {
-		let willBeOnFinal = true
-		if (matches[i].score < 1) {
-			willBeOnFinal = false
-			continue
-		}
-		willBeOnFinal = true
-		for (let j = 0; j < matches.length; j++) {
-			if (
-				findIntervalUnionPercent(
-					matches[i].inputShingleStart,
-					matches[i].inputShingleEnd,
-					matches[j].inputShingleStart,
-					matches[j].inputShingleEnd
-				) >= percentToMerge
-			) {
-				if (matches[i].score < matches[j].score && i != j) {
-					willBeOnFinal = false
-				} else if (matches[i].score == matches[j].score && i != j) {
-					if (i < j) {
-						willBeOnFinal = false
-					}
-				}
-			}
-		}
-		if (willBeOnFinal) {
-			finalMatches.push(matches[i])
-		}
-	}
-	let periodIndices = findCharacterInText(text, ".")
-	let bibliography = "\n\n\nBibliography\n\n"
-	let replacements = {}
-	let usedUrls = ["placeholder because people don't count from 0"]
-	for (let fMatch of finalMatches) {
-		let matchPeriodIndex = fMatch.findNearestPeriod(periodIndices)
-		let replacement = findUniqueSubstring(text, matchPeriodIndex)
-		if (!usedUrls.includes(finalMatches.source)) {
-			replacements[replacement] = replacement + `[${usedUrls.length}]`
-			bibliography +=
-				`[${usedUrls.length}] ${fMatch.sourceTitle} (n.d.). Retrieved` +
-				` from ${fMatch.source}\n`
-			usedUrls.push(fMatch.source)
-		} else {
-			replacements[replacement] =
-				replacement + `[${usedUrls.indexOf(fMatch.length)}]`
-		}
-	}
-	if (!replace) {
-		return [replacements, bibliography]
-	}
-	for (let [replacedText, replacement] of Object.entries(replacements)) {
-		text = text.replace(replacedText, replacement)
-	}
-	return text + bibliography
-}
-
 if (!inBrowser) {
-	module.exports = {match, autoCitation, matchPrint}
+	module.exports = {match, matchPrint}
 } else {
-	window["hooke"] = {match, autoCitation, matchPrint}
+	// @ts-ignore
+	window.hooke = {match, matchPrint}
 }

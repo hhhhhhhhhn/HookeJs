@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es6",
+		"lib": ["es2017", "dom"],
+		"declaration": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"outDir": "./lib",
+		"strict": true,
+		"resolveJsonModule": true
+	},
+	"include": [
+		"src/**/*"
+	],
+	"ts-node": {
+		"swc": true
+	}
+}

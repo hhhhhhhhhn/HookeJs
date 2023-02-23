@@ -3,7 +3,7 @@
 ![](https://github.com/oekshido/HookeJs/workflows/Node.js%20CI/badge.svg)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-An open source plagiarism detector and autocitation built in node.
+An open source plagiarism detector built in node.
 
 ## Installation
 
@@ -12,15 +12,6 @@ npm install hookejs
 ```
 
 ## Usage
-
-For auto-citation:
-
-```javascript
-hooke = require("hookejs")
-plagiarisedText = `In information theory, linguistics and computer science, the Levenshtein distance is a string metric for measuring the difference between two sequences`
-citedText = hooke.autoCitation({text: plagiarisedText, replace: true})
-console.log(citedText)
-```
 
 For plagiarism detection:
 
@@ -37,9 +28,6 @@ hooke.matchPrint({text: plagiarisedText})
 
 -   `matchPrint`: Prints `match` results in an understandable manner.
 
--   `autoCitation`:
-    Returns the given text with citations (using the `match` function) or the replacements needed to make the citation and the bibliography (controlled by the `replace` parameter)
-
 ## Note
 
-This package can a google custom search api key and engine id, which can be accesed through function parameters or the G_API_KEY and G_ENGINE_ID enviroment variables. If not provided, it will scrape the results (use at your own risk)
+This package can a google custom search API key and engine id, which can be accessed through function parameters or the G_API_KEY and G_ENGINE_ID environment variables. If not provided, it will scrape the results (use at your own risk)
