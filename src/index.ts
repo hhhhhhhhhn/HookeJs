@@ -1,6 +1,7 @@
-// @ts-ignore
 const snowball = require("snowball-stemmers")
-import data from "./stopwords.json"
+
+import * as stopwordData from "./stopwords.json";
+
 const inBrowser = typeof window != "undefined"
 
 type Language = "english" | "spanish"
@@ -46,8 +47,8 @@ if (inBrowser) {
 					clearTimeout(out)
 					resolve(data)
 				})
-				res.on("error", () => {
-					reject(data)
+				res.on("error", (e: Error) => {
+					reject(e)
 				})
 			}
 			const options = {
@@ -78,8 +79,8 @@ if (inBrowser) {
  */
 function getWords(text: string, language = english): [string[], number[][]] {
 	let regex = new RegExp(
-		data[language].wordregex[0],
-		data[language].wordregex[1]
+		stopwordData[language].wordregex[0],
+		stopwordData[language].wordregex[1]
 	)
 	let words: string[] = []
 	let indices: number[][] = []
@@ -103,10 +104,10 @@ function normalizeAndRemoveStopWords(
 	indicesList: number[][],
 	language = english
 ): [string[], number[][]] {
-	let stopwords = data[language].stopwords
+	let stopwords = stopwordData[language].stopwords
 	let spaces = RegExp(
-		data[language].spaceregex[0],
-		data[language].spaceregex[1]
+		stopwordData[language].spaceregex[0],
+		stopwordData[language].spaceregex[1]
 	) // All non-allowed characters
 
 	let newWords = []
@@ -383,21 +384,16 @@ async function singleSearchScrape(query: string) {
 	]
 	let url = new URL("https://www.google.com/search")
 	url.searchParams.append("q", query)
-	let response = await get(url.href, 60000)
+	let response = await get(url.href, 60000).catch(e => {throw e})
 	let anchorTags = response.match(/<a[\s]+([^>]+)>/gi) || []
 	let urls: string[] = []
 	for (let tag of anchorTags) {
-		let link = tag.match(/".*?"/)?.[0] || ""
-		let start = link.slice(1, 5)
-		link = link.slice(1, -1).split("&")[0]
-		if (
-			start == "http" &&
-			link != "" &&
-			!includesSubstringFromArray(link, ignore) &&
-			!urls.includes(link)
-		) {
-			urls.push(link)
-		}
+		let links = [...tag.matchAll(/".*?"/g)]
+			.filter(e => e[0].startsWith("\"http"))
+			.map(e => e[0].slice(1, -1).split("&")[0])
+			.filter(e => !includesSubstringFromArray(e, ignore))
+			.filter(e => !urls.includes(e))
+		urls.push(...links)
 	}
 	return urls
 }
@@ -610,14 +606,15 @@ async function match({
 	let usedUrls: string[] = [] // Urls that have already have been used.
 	for (let query of searchQueries) {
 		let comparedUrls: string[]
-		if (apikey && engineid) {
-			try {
+		try {
+			if (apikey && engineid) {
 				comparedUrls = await singleSearchApi(query, apikey, engineid)
-			} catch {
+			} else {
 				comparedUrls = await singleSearchScrape(query)
 			}
-		} else {
-			comparedUrls = await singleSearchScrape(query)
+		}
+		catch (e) {
+			throw e
 		}
 
 		comparedUrls = diff(comparedUrls, usedUrls) // New urls
@@ -627,7 +624,7 @@ async function match({
 			comparedUrls,
 			true,
 			verbose
-		).catch(console.log)) || [[], []]
+		).catch((e) => {throw e})) || [[], []]
 		for (let i = 0; i < comparedTexts.length; i++) {
 			let [comparedWordsTemp, comparedIndicesListTemp] = getWords(
 				comparedTexts[i]
