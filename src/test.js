@@ -100,7 +100,7 @@ it("should return matches on a plagiraised text (RNN) (scrape)", async () => {
 			"No matches found for the RNNs Test"
 		)
 	}
-	log("\n[", sources.map(e => e.source).join(", "), "]\n")
+	// log("\n[", sources.map(e => e.source).join(", "), "]\n")
 	if (
 		!sources
 			.map((e) => e.source)

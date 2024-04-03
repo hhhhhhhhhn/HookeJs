@@ -440,7 +440,7 @@ async function downloadWebsites(
 	let catchFunction = verbose ? console.log : () => {}
 	let requests = []
 	for (let i = 0; i < urls.length; i++) {
-		requests.push(get(urls[i], 60000))
+		requests.push(get(urls[i], 60000).catch(() => ""))
 	}
 	let responses = (await Promise.all(requests).catch(catchFunction)) || []
 	let htmls = responses.map((e) => {

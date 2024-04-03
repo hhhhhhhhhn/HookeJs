@@ -4,7 +4,7 @@
 	"description": "An open source plagiarism detector and autocitation built in node.",
 	"main": "lib/index.js",
 	"scripts": {
-		"test": "node lib/test.js",
+		"test": "npm run build && node lib/test.js",
 		"format": "npx prettier --write **/*.{ts,json}",
 		"build": "tsc && cp src/*.js lib/",
 		"all": "npm run format && npm run build"
